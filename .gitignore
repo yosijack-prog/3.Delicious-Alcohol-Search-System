@@ -1,0 +1,19 @@
+# 商品画像（Googleドライブで共有）
+images/
+
+# バックアップ
+backups/
+backups*/
+
+# Claude Code内部ファイル
+.claude/
+
+# Node.js
+node_modules/
+
+# Excelファイル（ローカルのみ）
+*.xlsx
+
+# OS
+.DS_Store
+Thumbs.db

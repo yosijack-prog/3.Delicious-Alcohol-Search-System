@@ -1,0 +1,1644 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>あなたにぴったりのお酒を探す</title>
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:        #faf6f2;
+      --surface:   #ffffff;
+      --card:      #fdf9f6;
+      --border:    rgba(180,100,80,0.1);
+      --accent:    #c4786c;
+      --accent2:   #e8a87c;
+      --text:      #3a2f2c;
+      --muted:     #a89890;
+      --radius:    20px;
+      --shadow:    0 4px 24px rgba(180,100,80,0.09);
+      --shadow-lg: 0 10px 40px rgba(180,100,80,0.14);
+      --trans:     0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    html, body {
+      height: 100%;
+      font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    /* ===== SOFT WARM BACKGROUND ===== */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 70% 55% at 5% 5%,  rgba(232,168,124,0.18) 0%, transparent 65%),
+        radial-gradient(ellipse 55% 65% at 95% 95%, rgba(196,120,108,0.13) 0%, transparent 65%),
+        radial-gradient(ellipse 40% 40% at 50% 20%, rgba(255,235,220,0.20) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    /* ===== LAYOUT ===== */
+    #app {
+      position: relative; z-index: 1;
+      height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 20px;
+    }
+
+    /* ===== SCREENS ===== */
+    .screen {
+      width: 100%; max-width: 720px;
+      display: none;
+      animation: fadeUp 0.45s var(--trans) both;
+    }
+    .screen.active { display: flex; flex-direction: column; align-items: center; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== WELCOME SCREEN ===== */
+    #screen-welcome { text-align: center; gap: 32px; }
+    .welcome-illustration {
+      position: relative; display: inline-block;
+      margin-bottom: 4px;
+    }
+    .welcome-icon-main {
+      font-size: 110px;
+      display: block;
+      animation: float 3.5s ease-in-out infinite;
+      filter: drop-shadow(0 8px 20px rgba(196,120,108,0.25));
+    }
+    .welcome-deco {
+      position: absolute; font-size: 30px;
+      animation: floatSlow 4s ease-in-out infinite;
+    }
+    .welcome-deco-1 { top: 0px;  left: -38px; animation-delay: -1s; }
+    .welcome-deco-2 { top: 10px; right: -36px; animation-delay: -2s; }
+    .welcome-deco-3 { bottom: 0; left: 10px;  animation-delay: -0.5s; font-size:22px; }
+    @keyframes float     { 0%,100%{transform:translateY(0)}    50%{transform:translateY(-10px)} }
+    @keyframes floatSlow { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-7px) rotate(8deg)} }
+
+    .welcome-title {
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      line-height: 1.35;
+      color: var(--text);
+    }
+    .welcome-title em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .welcome-sub {
+      font-size: clamp(17px, 2.4vw, 20px);
+      color: var(--muted);
+      line-height: 1.85;
+      max-width: 480px;
+    }
+    .welcome-steps {
+      display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+    }
+    .step-badge {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 50px; padding: 10px 20px;
+      font-size: 15px; color: var(--muted);
+      display: flex; align-items: center; gap: 7px;
+      box-shadow: 0 2px 8px rgba(180,100,80,0.06);
+    }
+    .step-badge span { color: var(--accent); font-weight: 700; }
+
+    /* ===== PROGRESS BAR ===== */
+    .progress-wrap { width: 100%; margin-bottom: 6px; }
+    .progress-label {
+      display: flex; justify-content: space-between;
+      font-size: 15px; color: var(--muted); margin-bottom: 8px;
+    }
+    .progress-bar {
+      height: 6px; background: rgba(180,100,80,0.1); border-radius: 3px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 3px;
+      transition: width 0.5s var(--trans);
+    }
+
+    /* ===== QUESTION SCREEN ===== */
+    #screen-question {
+      gap: 16px;
+      overflow-y: auto; max-height: 100vh; padding-bottom: 24px;
+      scrollbar-width: none;
+    }
+    #screen-question::-webkit-scrollbar { display: none; }
+    .question-card {
+      width: 100%;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 30px 26px 26px;
+      box-shadow: var(--shadow);
+    }
+    .question-step {
+      font-size: 14px; color: var(--accent); letter-spacing: 0.12em;
+      text-transform: uppercase; margin-bottom: 10px; font-weight: 700;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .question-step::before {
+      content: ''; display: inline-block;
+      width: 20px; height: 2px; background: var(--accent); border-radius: 1px;
+    }
+    .question-text {
+      font-size: clamp(20px, 3.5vw, 27px);
+      font-weight: 700; line-height: 1.45; margin-bottom: 6px;
+      color: var(--text);
+    }
+    .question-hint {
+      font-size: 16px; color: var(--muted); margin-bottom: 24px; line-height: 1.6;
+    }
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+      gap: 10px;
+    }
+    /* 6個以上の選択肢 → コンパクト4列レイアウト */
+    .options-grid.many {
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 9px;
+    }
+    .options-grid.many .option-btn {
+      min-height: 90px; padding: 14px 10px 12px; gap: 7px;
+    }
+    .options-grid.many .option-icon { font-size: 30px; }
+    .options-grid.many .option-label { font-size: 14px; }
+    .options-grid.many .option-sub   { font-size: 12px; }
+    .option-btn {
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 14px 16px;
+      cursor: pointer;
+      transition: all var(--trans);
+      text-align: center;
+      color: var(--text);
+      font-family: inherit;
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      min-height: 100px; justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .option-btn:hover, .option-btn:focus {
+      border-color: var(--accent);
+      background: #fff8f6;
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(196,120,108,0.18);
+      outline: none;
+    }
+    .option-btn.selected {
+      border-color: var(--accent);
+      background: rgba(196,120,108,0.07);
+      box-shadow: 0 0 0 3px rgba(196,120,108,0.15);
+    }
+    .option-btn.selected .option-icon { transform: scale(1.1); }
+    .option-icon { font-size: 36px; transition: transform var(--trans); }
+    .option-label { font-weight: 700; font-size: 16px; color: var(--text); line-height: 1.3; }
+    .option-sub   { font-size: 14px; color: var(--muted); line-height: 1.4; }
+
+    /* ===== RESULT SCREEN ===== */
+    #screen-result {
+      gap: 20px; width: 100%; max-width: 800px;
+      overflow-y: auto; max-height: 100vh; padding-bottom: 32px;
+      scrollbar-width: thin; scrollbar-color: rgba(196,120,108,0.3) transparent;
+    }
+    #screen-result::-webkit-scrollbar { width: 4px; }
+    #screen-result::-webkit-scrollbar-thumb { background: rgba(196,120,108,0.3); border-radius: 2px; }
+
+    .result-header { text-align: center; padding-top: 8px; }
+    .result-header-emoji { font-size: 62px; margin-bottom: 10px; display: block; }
+    .result-title {
+      font-size: clamp(23px, 4.5vw, 36px);
+      font-weight: 700; line-height: 1.3;
+      color: var(--text); margin-bottom: 6px;
+    }
+    .result-title em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .result-sub { font-size: 16px; color: var(--muted); line-height: 1.7; }
+
+    /* Profile bars */
+    .profile-bar-wrap {
+      width: 100%; background: var(--surface);
+      border: 1.5px solid var(--border); border-radius: var(--radius);
+      padding: 18px 22px;
+      box-shadow: var(--shadow);
+    }
+    .profile-bar-title {
+      font-size: 14px; color: var(--accent); font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 14px;
+    }
+    .profile-bars { display: flex; flex-direction: column; gap: 10px; }
+    .profile-bar-row { display: flex; align-items: center; gap: 10px; }
+    .profile-bar-label { font-size: 14px; color: var(--muted); width: 72px; flex-shrink: 0; text-align: right; }
+    .profile-bar-bg { flex: 1; height: 7px; background: rgba(180,100,80,0.08); border-radius: 4px; overflow: hidden; }
+    .profile-bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 1s var(--trans); }
+
+    /* Product cards */
+    .products-grid {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+    }
+    .product-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 17px 17px;
+      box-shadow: var(--shadow);
+      display: flex; flex-direction: column; gap: 9px;
+      position: relative; overflow: hidden;
+      animation: fadeUp 0.45s var(--trans) both;
+      transition: transform var(--trans), box-shadow var(--trans);
+    }
+    .product-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+    .product-card.rank-1 { border-color: rgba(196,120,108,0.45); }
+    .product-card.rank-2 { border-color: rgba(196,120,108,0.25); }
+    .product-card.rank-3 { border-color: rgba(196,120,108,0.15); }
+
+    .rank-badge {
+      position: absolute; top: 13px; right: 13px;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+      padding: 3px 10px; border-radius: 50px;
+    }
+    .rank-1 .rank-badge { background: rgba(196,120,108,0.12); color: var(--accent); }
+    .rank-2 .rank-badge { background: rgba(196,120,108,0.07); color: var(--accent2); }
+    .rank-3 .rank-badge { background: rgba(196,120,108,0.05); color: #c9a88a; }
+    .rank-4 .rank-badge, .rank-5 .rank-badge { background: rgba(180,160,150,0.08); color: var(--muted); }
+
+    .product-icon { font-size: 38px; }
+    .product-type { font-size: 13px; color: var(--accent); letter-spacing: 0.1em; font-weight: 700; text-transform: uppercase; }
+    .product-name { font-size: 18px; font-weight: 700; line-height: 1.35; color: var(--text); }
+    .product-desc { font-size: 15px; color: var(--muted); line-height: 1.65; }
+
+    .product-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+    .tag {
+      background: rgba(196,120,108,0.07);
+      border: 1px solid rgba(196,120,108,0.15);
+      border-radius: 50px; padding: 3px 11px;
+      font-size: 13px; color: var(--accent);
+    }
+    .product-price {
+      font-size: 20px; font-weight: 700; color: var(--text);
+    }
+    .price-tax { font-size: 13px; color: var(--muted); font-weight: 400; margin-left: 2px; }
+
+    /* Pairing */
+    .product-pairing {
+      background: rgba(196,120,108,0.05);
+      border-radius: 10px; padding: 9px 12px;
+      font-size: 14px; color: var(--muted); line-height: 1.6;
+    }
+    .pairing-label {
+      font-size: 13px; font-weight: 700; color: var(--accent);
+      letter-spacing: 0.08em; display: block; margin-bottom: 3px;
+    }
+
+    /* Product image */
+    .product-img-wrap {
+      width: 100%; aspect-ratio: 1/1; max-height: 140px;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden; border-radius: 10px;
+      background: rgba(196,120,108,0.04);
+    }
+    .product-img-wrap img {
+      max-width: 100%; max-height: 140px;
+      object-fit: contain;
+    }
+
+    .match-score { display: flex; align-items: center; gap: 5px; margin-top: 2px; }
+    .match-stars { color: var(--accent); font-size: 16px; letter-spacing: -1px; }
+    .match-label { font-size: 14px; color: var(--muted); }
+
+    /* ===== BUTTONS ===== */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 18px 40px; border-radius: 50px;
+      font-size: 18px; font-weight: 700; font-family: inherit;
+      cursor: pointer; border: none;
+      transition: all var(--trans);
+      letter-spacing: 0.04em;
+      min-width: 220px; min-height: 60px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #ffffff;
+      box-shadow: 0 4px 18px rgba(196,120,108,0.38);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(196,120,108,0.48);
+    }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-ghost {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      color: var(--muted);
+      box-shadow: 0 2px 8px rgba(180,100,80,0.06);
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+
+    /* ===== TOUCH RIPPLE ===== */
+    .ripple { position: relative; overflow: hidden; }
+    .ripple-effect {
+      position: absolute; border-radius: 50%;
+      background: rgba(196,120,108,0.2);
+      transform: scale(0);
+      animation: rippleAnim 0.55s linear;
+      pointer-events: none;
+    }
+    @keyframes rippleAnim { to { transform: scale(4); opacity: 0; } }
+
+    /* ===== SWIPE SCREEN ===== */
+    #screen-swipe { gap: 14px; overflow-y: auto; max-height: 100vh; padding-bottom: 24px; scrollbar-width: none; }
+    #screen-swipe::-webkit-scrollbar { display: none; }
+
+    .swipe-header { width: 100%; text-align: center; }
+    .swipe-hint { font-size: 17px; color: var(--muted); margin-bottom: 6px; }
+    .swipe-counter { font-size: 16px; color: var(--accent); font-weight: 700; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .swipe-dots { display: flex; gap: 7px; justify-content: center; }
+    .swipe-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: rgba(180,100,80,0.15);
+      transition: all var(--trans);
+    }
+    .swipe-dot.done    { background: var(--accent); }
+    .swipe-dot.current { background: var(--accent2); transform: scale(1.4); }
+
+    .swipe-card-wrap { width: 100%; display: flex; justify-content: center; }
+    .swipe-card {
+      width: 100%; max-width: 340px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      transition: transform 0.38s cubic-bezier(0.4,0,0.2,1), opacity 0.38s;
+    }
+    .swipe-card.out-yes { transform: translateX(150%) rotate(22deg); opacity: 0; }
+    .swipe-card.out-no  { transform: translateX(-150%) rotate(-22deg); opacity: 0; }
+    .swipe-card.out-meh { transform: scale(0.8) translateY(-30px); opacity: 0; }
+
+    .swipe-img-wrap {
+      width: 100%; height: 240px;
+      background: #fdf9f6;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .swipe-img-wrap img { max-width: 100%; max-height: 240px; object-fit: contain; }
+    .swipe-img-wrap .swipe-icon { font-size: 80px; }
+
+    .swipe-card-info { padding: 14px 18px 16px; }
+    .swipe-card-type  { font-size: 14px; color: var(--accent); font-weight: 700; letter-spacing: 0.1em; margin-bottom: 4px; }
+    .swipe-card-name  { font-size: 19px; font-weight: 700; line-height: 1.35; color: var(--text); }
+    .swipe-card-price { font-size: 16px; color: var(--muted); margin-top: 4px; }
+
+    .swipe-btns { display: flex; gap: 10px; justify-content: center; width: 100%; }
+    .swipe-btn {
+      flex: 1; max-width: 130px;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 15px 10px 13px;
+      border-radius: 16px;
+      font-size: 15px; font-weight: 700; font-family: inherit;
+      cursor: pointer; border: 2px solid var(--border);
+      background: var(--surface); color: var(--muted);
+      transition: all var(--trans);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .swipe-btn-icon { font-size: 34px; line-height: 1; }
+    .swipe-no:hover  { border-color: #bbb; color: #888; transform: translateY(-2px); }
+    .swipe-meh:hover { border-color: var(--accent2); color: var(--accent2); transform: translateY(-2px); }
+    .swipe-yes:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); background: rgba(196,120,108,0.06); }
+    .swipe-no:active  { transform: translateY(0); }
+    .swipe-meh:active { transform: translateY(0); }
+    .swipe-yes:active { transform: translateY(0); }
+    .swipe-yes { box-shadow: 0 4px 14px rgba(196,120,108,0.18); }
+
+    @media (min-width: 768px) {
+      .swipe-card { max-width: 460px; }
+      .swipe-img-wrap { height: 320px; }
+      .swipe-img-wrap img { max-height: 320px; }
+      .swipe-img-wrap .swipe-icon { font-size: 110px; }
+      .swipe-card-info { padding: 18px 22px 20px; }
+      .swipe-card-name { font-size: 23px; }
+      .swipe-card-type { font-size: 17px; }
+      .swipe-card-price { font-size: 19px; }
+      .swipe-btn { max-width: 160px; padding: 18px 12px 16px; font-size: 17px; }
+      .swipe-btn-icon { font-size: 42px; }
+      .swipe-hint { font-size: 20px; }
+      .swipe-counter { font-size: 18px; }
+      .swipe-dot { width: 11px; height: 11px; }
+    }
+
+    /* ===== CARD SELECTION ===== */
+    .product-card { cursor: pointer; }
+    .product-card.selected-card {
+      border-color: var(--accent) !important;
+      box-shadow: 0 0 0 3px rgba(196,120,108,0.3), var(--shadow-lg) !important;
+      transform: translateY(-4px);
+    }
+    .product-card.selected-card::after {
+      content: '✓ 選択中';
+      position: absolute; top: 13px; left: 13px;
+      font-size: 11px; font-weight: 700; color: var(--accent);
+      background: rgba(196,120,108,0.1);
+      border-radius: 50px; padding: 3px 10px;
+    }
+    .select-hint {
+      text-align: center; font-size: 14px; color: var(--muted);
+      padding: 4px 0; transition: opacity var(--trans);
+    }
+    .select-hint.hidden { opacity: 0; pointer-events: none; }
+
+    /* ===== QR CODE ===== */
+    .qr-wrap {
+      width: 100%;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 20px;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+    .qr-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .qr-desc  { font-size: 12px; color: var(--muted); line-height: 1.7; margin-bottom: 16px; }
+    .qr-code-box {
+      display: inline-block;
+      padding: 12px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(180,100,80,0.1);
+      margin-bottom: 12px;
+    }
+    .qr-code-box canvas, .qr-code-box img { display: block; }
+    .qr-note { font-size: 11px; color: var(--muted); line-height: 1.8; }
+    @media (min-width: 768px) {
+      .qr-title { font-size: 21px; }
+      .qr-desc  { font-size: 18px; }
+      .qr-note  { font-size: 16px; }
+    }
+
+    /* ===== PRINT MAIN BUTTON ===== */
+    .btn-print-main {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 15px 34px; border-radius: 50px;
+      font-size: 15px; font-weight: 700; font-family: inherit;
+      cursor: pointer; border: 2px solid var(--accent);
+      background: var(--surface); color: var(--accent);
+      transition: all var(--trans);
+      min-width: 220px; min-height: 60px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-print-main:disabled {
+      border-color: var(--border); color: var(--muted);
+      cursor: default; opacity: 0.6;
+    }
+    .btn-print-main:not(:disabled):hover {
+      background: var(--accent); color: #fff;
+      box-shadow: 0 4px 18px rgba(196,120,108,0.38);
+    }
+    @media (min-width: 768px) {
+      .product-card.selected-card::after { font-size: 15px; }
+      .select-hint { font-size: 19px; }
+      .btn-print-main { font-size: 22px; padding: 20px 46px; min-height: 64px; }
+    }
+
+    /* ===== PRINT BUTTON (old, now unused) ===== */
+    .btn-print {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      margin-top: 6px; width: 100%;
+      padding: 10px 0; border-radius: 10px;
+      font-size: 13px; font-weight: 700; font-family: inherit;
+      cursor: pointer; border: 1.5px solid var(--border);
+      background: var(--surface); color: var(--muted);
+      transition: all var(--trans);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-print:hover { border-color: var(--accent); color: var(--accent); background: #fff8f6; }
+
+    /* ===== PRINT SLIP (hidden on screen) ===== */
+    #print-slip { display: none; }
+
+    @media print {
+      @page { size: 80mm auto; margin: 5mm 4mm; }
+      body * { visibility: hidden !important; }
+      #print-slip, #print-slip * { visibility: visible !important; }
+      #print-slip {
+        display: block !important;
+        position: absolute; top: 0; left: 0;
+        width: 72mm;
+        font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
+        color: #000; background: #fff;
+      }
+      .ps-header {
+        display: flex; justify-content: space-between; align-items: flex-end;
+        border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 8px;
+      }
+      .ps-store { font-size: 9pt; letter-spacing: 0.04em; }
+      .ps-date  { font-size: 7pt; color: #666; }
+      .ps-headline {
+        font-size: 7pt; letter-spacing: 0.1em; font-weight: 700;
+        margin-bottom: 3px; text-align: center;
+        border: 1px solid #000; padding: 2px 0; border-radius: 3px;
+      }
+      .ps-icon  { font-size: 28pt; display: block; text-align: center; margin: 6px 0 2px; }
+      .ps-type  { font-size: 7pt; font-weight: 700; letter-spacing: 0.08em; margin-bottom: 2px; }
+      .ps-name  { font-size: 13pt; font-weight: 900; margin-bottom: 4px; line-height: 1.35; }
+      .ps-desc  { font-size: 7pt; color: #444; line-height: 1.6; margin-bottom: 6px; }
+      .ps-tags  { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 6px; }
+      .ps-tag   { border: 1px solid #000; border-radius: 50px; padding: 1px 6px; font-size: 7pt; }
+      .ps-price { font-size: 18pt; font-weight: 900; margin-bottom: 6px; }
+      .ps-price-tax { font-size: 8pt; font-weight: 400; }
+      .ps-pairing-wrap {
+        border: 1px solid #000; border-radius: 4px; padding: 5px 7px;
+        margin-bottom: 6px;
+      }
+      .ps-pairing-label { font-size: 7pt; font-weight: 700; letter-spacing: 0.08em; margin-bottom: 2px; }
+      .ps-pairing-text  { font-size: 7pt; color: #444; line-height: 1.5; }
+      .ps-match { font-size: 8pt; margin-bottom: 8px; }
+      .ps-footer {
+        border-top: 1px dashed #000; padding-top: 7px; margin-top: 2px;
+        text-align: center; font-size: 9pt; line-height: 1.8;
+      }
+      .ps-footer strong { font-size: 10pt; }
+    }
+
+    /* ===== iPAD MINI (768px+) ===== */
+    @media (min-width: 768px) {
+      #app { padding: 28px; }
+
+      .screen { max-width: 800px; }
+      #screen-result { max-width: 900px; }
+
+      /* Welcome */
+      .welcome-icon-main { font-size: 108px; }
+      .welcome-deco { font-size: 30px; }
+      .welcome-deco-1 { left: -42px; }
+      .welcome-deco-2 { right: -40px; }
+      .welcome-title { font-size: clamp(33px, 4.5vw, 49px); }
+      .welcome-sub { font-size: clamp(18px, 2.2vw, 22px); max-width: 520px; }
+      .step-badge { font-size: 17px; padding: 9px 20px; }
+
+      /* Progress */
+      .progress-label { font-size: 18px; }
+      .progress-bar { height: 9px; }
+
+      /* Question */
+      #screen-question { gap: 22px; }
+      .question-card { padding: 42px 38px 36px; }
+      .question-step { font-size: 18px; margin-bottom: 14px; }
+      .question-text { font-size: clamp(28px, 3.2vw, 37px); margin-bottom: 10px; }
+      .question-hint { font-size: 20px; margin-bottom: 30px; }
+
+      /* Options */
+      .options-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+      .option-btn { padding: 24px 18px 22px; min-height: 124px; gap: 11px; border-radius: 20px; }
+      .option-icon { font-size: 46px; }
+      .option-label { font-size: 21px; }
+      .option-sub { font-size: 18px; }
+
+      /* 6個以上 → 4列コンパクト (STEP1スクロール不要) */
+      .options-grid.many { grid-template-columns: repeat(4, 1fr); gap: 12px; }
+      .options-grid.many .option-btn { padding: 18px 12px 16px; min-height: 106px; gap: 9px; border-radius: 18px; }
+      .options-grid.many .option-icon { font-size: 38px; }
+      .options-grid.many .option-label { font-size: 18px; }
+      .options-grid.many .option-sub   { font-size: 14px; }
+
+      /* Results */
+      .result-header-emoji { font-size: 72px; }
+      .result-title { font-size: clamp(30px, 3.8vw, 45px); }
+      .result-sub { font-size: 20px; }
+
+      /* Profile bars */
+      .profile-bar-wrap { padding: 24px 30px; }
+      .profile-bar-title { font-size: 18px; margin-bottom: 20px; }
+      .profile-bars { gap: 14px; }
+      .profile-bar-label { font-size: 18px; width: 88px; }
+      .profile-bar-bg { height: 10px; }
+
+      /* Product cards */
+      .products-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
+      .product-card { padding: 26px 22px 22px; gap: 12px; }
+      .product-icon { font-size: 46px; }
+      .product-type { font-size: 17px; }
+      .product-name { font-size: 23px; }
+      .product-desc { font-size: 18px; }
+      .tag { font-size: 16px; padding: 5px 14px; }
+      .product-price { font-size: 26px; }
+      .price-tax { font-size: 16px; }
+      .product-pairing { font-size: 17px; padding: 11px 14px; border-radius: 12px; }
+      .pairing-label { font-size: 16px; }
+      .match-stars { font-size: 21px; }
+      .match-label { font-size: 18px; }
+      .rank-badge { font-size: 16px; padding: 5px 14px; }
+
+      /* Buttons */
+      .btn { padding: 20px 46px; font-size: 22px; min-height: 64px; min-width: 240px; }
+      .btn-row { gap: 18px; }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== WELCOME ===== -->
+  <div id="screen-welcome" class="screen active">
+    <div class="welcome-illustration">
+      <span class="welcome-icon-main">🌸</span>
+      <span class="welcome-deco welcome-deco-1">🍶</span>
+      <span class="welcome-deco welcome-deco-2">🍷</span>
+      <span class="welcome-deco welcome-deco-3">✨</span>
+    </div>
+    <div>
+      <div class="welcome-title">今日の<em>一杯</em>を<br>見つけましょう</div>
+    </div>
+    <p class="welcome-sub">
+      いくつかの質問に答えるだけで、<br>あなたの気分にぴったりのお酒をご提案します。
+    </p>
+    <div class="welcome-steps">
+      <div class="step-badge"><span>かんたん</span>質問</div>
+      <div class="step-badge"><span>約1分</span>で完了</div>
+      <div class="step-badge"><span id="product-count">-</span>種類から提案</div>
+    </div>
+    <button class="btn btn-primary" onclick="startQuiz()">
+      ✨ 診断スタート
+    </button>
+  </div>
+
+  <!-- ===== SWIPE ===== -->
+  <div id="screen-swipe" class="screen">
+    <div class="swipe-header">
+      <div class="swipe-hint">飲んだことがある商品を教えてください</div>
+      <div class="swipe-counter"><span id="swipe-cur">1</span> / <span id="swipe-tot">6</span></div>
+      <div class="swipe-dots" id="swipe-dots"></div>
+    </div>
+    <div class="swipe-card-wrap">
+      <div class="swipe-card" id="swipe-card">
+        <div class="swipe-img-wrap" id="swipe-img-wrap"></div>
+        <div class="swipe-card-info">
+          <div class="swipe-card-type"  id="swipe-type"></div>
+          <div class="swipe-card-name"  id="swipe-name"></div>
+          <div class="swipe-card-price" id="swipe-price"></div>
+        </div>
+      </div>
+    </div>
+    <div class="swipe-btns">
+      <button class="swipe-btn swipe-no"  onclick="swipeRate('no')">
+        <span class="swipe-btn-icon">🤷</span>知らない
+      </button>
+      <button class="swipe-btn swipe-meh" onclick="swipeRate('meh')">
+        <span class="swipe-btn-icon">😐</span>普通かな
+      </button>
+      <button class="swipe-btn swipe-yes" onclick="swipeRate('yes')">
+        <span class="swipe-btn-icon">❤️</span>好き！
+      </button>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="skipSwipe()">この評価をスキップする →</button>
+    </div>
+  </div>
+
+  <!-- ===== QUESTION ===== -->
+  <div id="screen-question" class="screen">
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span id="progress-text">質問 1 / 6</span>
+        <span id="progress-pct">0%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+    <div class="question-card">
+      <div class="question-step" id="q-step">STEP 1</div>
+      <div class="question-text" id="q-text"></div>
+      <div class="question-hint" id="q-hint"></div>
+      <div class="options-grid" id="q-options"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goBack()">← 前に戻る</button>
+    </div>
+  </div>
+
+  <!-- ===== RESULT ===== -->
+  <div id="screen-result" class="screen">
+    <div class="result-header">
+      <span class="result-header-emoji">🌸</span>
+      <div class="result-title" id="result-title">今日の<em>あなた</em>へ</div>
+      <div class="result-sub" id="result-sub">あなたの味覚プロフィールに基づいたおすすめです</div>
+    </div>
+
+    <div class="profile-bar-wrap">
+      <div class="profile-bar-title">✦ あなたの味覚プロフィール</div>
+      <div class="profile-bars" id="profile-bars"></div>
+    </div>
+
+    <div class="products-grid" id="products-grid"></div>
+
+    <div class="select-hint" id="select-hint">👆 気に入った商品をタップして選んでください</div>
+
+    <div class="btn-row">
+      <button class="btn btn-print-main" id="btn-print-main" onclick="printSelected()" disabled>🖨️ 選んだ商品を印刷する</button>
+      <button class="btn btn-primary" onclick="restartQuiz()">🔄 もう一度診断する</button>
+    </div>
+
+    <!-- QRコード -->
+    <div class="qr-wrap" id="qr-wrap">
+      <div class="qr-title">📱 次回もすぐに使えます</div>
+      <div class="qr-desc">このQRコードをスマホで保存しておくと、次回来店時にあなたの好みを引き継げます</div>
+      <div class="qr-code-box">
+        <div id="qr-code"></div>
+      </div>
+      <div class="qr-note">📷 カメラで読み取って保存してください<br>個人情報は一切含まれません</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== PRINT SLIP ===== -->
+<div id="print-slip">
+  <div class="ps-header">
+    <div class="ps-store">🍶 おすすめのお酒</div>
+    <div class="ps-date" id="ps-date"></div>
+  </div>
+  <div class="ps-headline">✦ あなたへのおすすめ</div>
+  <div class="ps-icon"  id="ps-icon"></div>
+  <div class="ps-type"  id="ps-type"></div>
+  <div class="ps-name"  id="ps-name"></div>
+  <div class="ps-desc"  id="ps-desc"></div>
+  <div class="ps-tags"  id="ps-tags"></div>
+  <div class="ps-price" id="ps-price"></div>
+  <div class="ps-pairing-wrap">
+    <div class="ps-pairing-label">PAIRING</div>
+    <div class="ps-pairing-text" id="ps-pairing"></div>
+  </div>
+  <div class="ps-match" id="ps-match"></div>
+  <div class="ps-footer">
+    <strong>この紙を店員にお渡しください</strong><br>
+    スタッフがお探しします
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="products.js"></script>
+<script>
+/* PRODUCTS は products.js で定義済み */
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('product-count');
+  if (el && typeof PRODUCTS !== 'undefined') el.textContent = PRODUCTS.length.toLocaleString();
+
+  // QRコードからの好み復元
+  const params = new URLSearchParams(window.location.search);
+  const p = params.get('p');
+  const g = params.get('g');
+  if (p && g) {
+    const vals = p.split('-').map(Number);
+    const keys = ['sweet','bitter','acid','body','strong','fruity'];
+    if (vals.length === 6 && vals.every(v => v >= 1 && v <= 5)) {
+      keys.forEach((k, i) => { userProfile[k] = vals[i]; });
+      selectedGenre = g;
+      // ウェルカム画面に復元メッセージを表示してから結果へ
+      showQrRestoredBanner();
+    }
+  }
+});
+
+function showQrRestoredBanner() {
+  const banner = document.createElement('div');
+  banner.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:12px 24px;border-radius:50px;font-size:14px;font-weight:700;z-index:999;box-shadow:0 4px 18px rgba(196,120,108,0.4);';
+  banner.textContent = '✨ 前回の好みを復元しました';
+  document.body.appendChild(banner);
+  setTimeout(() => banner.remove(), 3000);
+  setTimeout(() => showResults(), 600);
+}
+
+/* ===================================================
+   QR CODE
+=================================================== */
+function generateQR() {
+  const el = document.getElementById('qr-code');
+  el.innerHTML = '';
+
+  const u = userProfile;
+  const vals = ['sweet','bitter','acid','body','strong','fruity']
+    .map(k => Math.round(u[k] || 2)).join('-');
+  const base = window.location.origin + window.location.pathname;
+  const url = `${base}?g=${encodeURIComponent(selectedGenre)}&p=${vals}`;
+
+  new QRCode(el, {
+    text: url,
+    width: 180, height: 180,
+    colorDark: '#3a2f2c',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
+}
+
+/* ===================================================
+   QUESTIONS
+=================================================== */
+// ジャンル → カテゴリのマッピング
+const GENRE_MAP = {
+  '日本酒':     ['純米大吟醸','大吟醸','純米吟醸','吟醸','特別純米','純米','本醸造','特別本醸造','清酒','普通酒','合成清酒'],
+  'ワイン':     ['フランスワイン','イタリアワイン','スペインワイン','国産ワイン','チリワイン','ドイツワイン','アメリカワイン','ｵｰｽﾄﾗﾘｱ','ポルトガル','舶来ワイン','アルゼンチン','南アフリカ','ルーマニア','甘味果実酒','果実酒'],
+  '焼酎':       ['焼酎乙類いも','焼酎乙類むぎ','焼酎乙類こめ','焼酎乙類泡盛','焼酎乙類黒糖','焼酎乙類その他','焼酎乙類そば','焼酎甲類'],
+  'ウイスキー': ['国産ｳｲｽｷｰ','ｽｺｯﾁ･ｳｲｽｷｰ','ｱﾒﾘｶﾝ･ｳｲｽｷｰ','ｱｲﾘｯｼｭ･ｳｲｽｷｰ','ｶﾅﾃﾞｨｱﾝ･ｳｲｽｷｰ','その他のｳｲｽｷｰ','国産ﾌﾞﾗﾝﾃﾞｰ','その他のﾌﾞﾗﾝﾃﾞｰ','コニャック','ﾌﾙｰﾂ･ﾌﾞﾗﾝﾃﾞｰ'],
+  'スピリッツ': ['ジン','テキーラ','ラム','その他のｽﾋﾟﾘｯﾂ'],
+  'ビール':     ['アサヒ','キリン','サントリー','サッポロ','その他ビール','発泡酒','ノンアルコールビール','その他　8％'],
+  'リキュール': ['その他のﾘｷｭｰﾙ','薬草･ﾊｰﾌﾞ花','その他の醸造酒','紹興酒 黄酒'],
+  'なんでも':   null  // null = フィルタなし
+};
+
+// ジャンル選択（常に最初の質問）
+const GENRE_QUESTION = {
+  key: 'genre', isGenre: true,
+  text: 'どのジャンルのお酒が気になりますか？',
+  hint: '気になるものを選んでください。「なんでも」なら全商品から提案します',
+  options: [
+    { icon: '🍶', label: '日本酒',     sub: '純米・吟醸・大吟醸など',   genre: '日本酒' },
+    { icon: '🍷', label: 'ワイン',     sub: '赤・白・ロゼ・果実酒',     genre: 'ワイン' },
+    { icon: '🫙', label: '焼酎',       sub: '芋・麦・米・泡盛など',     genre: '焼酎' },
+    { icon: '🥃', label: 'ウイスキー', sub: '国産・スコッチなど',       genre: 'ウイスキー' },
+    { icon: '🍸', label: 'スピリッツ', sub: 'ジン・テキーラ・ラムなど', genre: 'スピリッツ' },
+    { icon: '🍺', label: 'ビール',     sub: '各メーカー・発泡酒',       genre: 'ビール' },
+    { icon: '🍹', label: 'リキュール', sub: '梅酒・薬草・リキュール',   genre: 'リキュール' },
+    { icon: '🌈', label: 'なんでも',   sub: '全ジャンルから提案',       genre: 'なんでも' },
+  ]
+};
+
+// ジャンル別質問セット
+const GENRE_QUESTIONS = {
+  '日本酒': [
+    {
+      key: 'sake_aroma', text: '香りの好みを教えてください',
+      hint: '日本酒の香りの方向性を選んでください',
+      options: [
+        { icon: '🌸', label: '吟醸香たっぷり',   sub: 'フルーティ・華やかな香り',  weight: { fruity: 3, sweet: 1, body: -1 } },
+        { icon: '🍙', label: '穏やかな香り',     sub: '食中酒向き・落ち着いた香り', weight: { fruity: 1 } },
+        { icon: '💨', label: 'すっきり・ほぼ無香', sub: '淡麗でクリアな味わい',     weight: { fruity: -2, acid: 1, body: -1 } },
+      ]
+    },
+    {
+      key: 'sake_sweet', text: '甘辛の好みは？',
+      hint: '日本酒の甘口・辛口の好みを教えてください',
+      options: [
+        { icon: '🍭', label: '甘口',    sub: 'まろやかな甘みが好き',  weight: { sweet: 3, bitter: -2, acid: -1 } },
+        { icon: '🌸', label: 'やや甘口', sub: '少し甘みがあると嬉しい', weight: { sweet: 1, bitter: -1 } },
+        { icon: '⚖️',  label: '中口',    sub: 'バランスがとれたもの',  weight: {} },
+        { icon: '🗻', label: 'やや辛口', sub: '少しキリッとしたい',    weight: { sweet: -1, bitter: 1, acid: 1 } },
+        { icon: '⚡', label: '辛口',    sub: 'キレがあるのが好き',    weight: { sweet: -3, bitter: 2, acid: 1 } },
+      ]
+    },
+    {
+      key: 'sake_body', text: 'コク・重さはどれくらいが好みですか？',
+      hint: 'のどごしの軽さ・重さを教えてください',
+      options: [
+        { icon: '💧', label: 'あっさり・淡麗', sub: '軽くてスルッと飲みたい',  weight: { body: -3, bitter: -1 } },
+        { icon: '⚖️',  label: '程よいコク',   sub: 'バランスのとれたもの',    weight: {} },
+        { icon: '🍶', label: '濃醇・しっかり', sub: '飲みごたえのあるもの',    weight: { body: 2, bitter: 1, sweet: 1 } },
+      ]
+    },
+    {
+      key: 'sake_temp', text: '飲む温度の好みは？',
+      hint: '日本酒は温度によって味が大きく変わります',
+      options: [
+        { icon: '🧊', label: '冷酒（よく冷やして）', sub: 'キリッと冷たく飲みたい',  weight: { acid: 1, strong: -1, fruity: 1 } },
+        { icon: '🌡️', label: '常温・冷や',          sub: 'そのままで楽しみたい',    weight: {} },
+        { icon: '♨️', label: '燗（ぬる燗・熱燗）',   sub: '温めてまろやかに飲みたい', weight: { body: 1, bitter: 1, sweet: 1, acid: -1 } },
+      ]
+    },
+  ],
+
+  'ワイン': [
+    {
+      key: 'wine_color', text: 'どんなワインが好きですか？',
+      hint: '色や種類から選んでください',
+      options: [
+        { icon: '🍷', label: '赤ワイン',          sub: 'タンニン・コク・複雑さ',    weight: { bitter: 2, body: 2, acid: 1, sweet: -1 } },
+        { icon: '🥂', label: '白ワイン',          sub: '爽やか・フルーティ・すっきり', weight: { acid: 2, body: -1, bitter: -1, fruity: 1, sweet: 1 } },
+        { icon: '🌸', label: 'ロゼ',             sub: '軽やかで飲みやすい',        weight: { sweet: 1, acid: 1, body: -1, fruity: 2 } },
+        { icon: '🍾', label: 'スパークリング・泡', sub: '爽快な泡と軽やかさ',        weight: { acid: 2, body: -2, fruity: 1, sweet: -1 } },
+        { icon: '🍯', label: '甘口・デザートワイン', sub: 'しっかりした甘みが好き',  weight: { sweet: 4, acid: 1, bitter: -3, fruity: 2 } },
+      ]
+    },
+    {
+      key: 'wine_sweet', text: '甘辛の好みは？',
+      hint: 'ワインの甘さの好みを教えてください',
+      options: [
+        { icon: '🍬', label: '甘口・フルーティ', sub: '果実味と甘みが好き',    weight: { sweet: 2, fruity: 2, bitter: -1 } },
+        { icon: '🌿', label: 'やや辛口',        sub: '程よくドライでさっぱり', weight: { sweet: -1, acid: 1 } },
+        { icon: '⚡', label: 'しっかり辛口',    sub: 'キリッとドライが好き',   weight: { sweet: -3, acid: 2, bitter: 1 } },
+      ]
+    },
+    {
+      key: 'wine_body', text: 'コク・ボディの好みは？',
+      hint: 'ワインの重さ・ボリューム感を教えてください',
+      options: [
+        { icon: '💧', label: 'ライトボディ（軽い）',  sub: 'するっと飲めるもの',      weight: { body: -3, bitter: -1 } },
+        { icon: '⚖️',  label: 'ミディアムボディ',    sub: 'バランスがとれたもの',    weight: {} },
+        { icon: '🍷', label: 'フルボディ（しっかり）', sub: 'コクと重みのある味わい', weight: { body: 3, bitter: 1 } },
+      ]
+    },
+  ],
+
+  '焼酎': [
+    {
+      key: 'shochu_type', text: 'どの原料の焼酎が気になりますか？',
+      hint: '原料によって香りや味わいが大きく変わります',
+      options: [
+        { icon: '🍠', label: '芋焼酎',   sub: '個性的な香り・深みのある味',   weight: { fruity: 1, body: 2, sweet: 1, bitter: 1 }, filterTypes: ['焼酎乙類いも'] },
+        { icon: '🌾', label: '麦焼酎',   sub: 'すっきり・飲みやすい',        weight: { body: -1, bitter: -1, fruity: -1, acid: 1 }, filterTypes: ['焼酎乙類むぎ'] },
+        { icon: '🍚', label: '米焼酎',   sub: 'まろやか・上品な甘み',        weight: { sweet: 1, body: 1, bitter: -1, acid: -1 }, filterTypes: ['焼酎乙類こめ'] },
+        { icon: '🏝️', label: '泡盛',     sub: 'コク深い・独特の風味',        weight: { body: 2, bitter: 1, strong: 1 }, filterTypes: ['焼酎乙類泡盛'] },
+        { icon: '🎋', label: '黒糖焼酎', sub: 'やさしい甘みとまろやかさ',    weight: { sweet: 2, body: 1, bitter: -1 }, filterTypes: ['焼酎乙類黒糖'] },
+        { icon: '🌈', label: 'なんでもOK', sub: 'いろいろ試したい',          weight: {} },
+      ]
+    },
+    {
+      key: 'shochu_aroma', text: '香りの個性はどれくらい好みですか？',
+      hint: '香りの強さの好みを教えてください',
+      options: [
+        { icon: '💪', label: '個性が強い方が好き', sub: 'クセのある香りが楽しい',   weight: { fruity: 2, body: 1 } },
+        { icon: '⚖️',  label: '程よい香りが好き', sub: 'バランスのとれたもの',     weight: {} },
+        { icon: '💨', label: 'すっきり・控えめが好き', sub: '香りが穏やかなもの', weight: { fruity: -2, body: -1 } },
+      ]
+    },
+    {
+      key: 'shochu_drink', text: '飲み方のイメージは？',
+      hint: '飲み方で味の印象が変わります',
+      options: [
+        { icon: '🧊', label: 'ロック',     sub: '氷で冷やして原液を楽しむ', weight: { body: 1, strong: 1 } },
+        { icon: '💧', label: '水割り',     sub: 'さっぱり飲みたい',        weight: { strong: -1, body: -1 } },
+        { icon: '♨️', label: 'お湯割り',   sub: '温めてまろやかに',        weight: { body: 2, sweet: 1, acid: -1 } },
+        { icon: '🫧', label: 'ソーダ割り', sub: '炭酸でさっぱり',          weight: { acid: 1, body: -2, strong: -2, fruity: 1 } },
+      ]
+    },
+  ],
+
+  'ウイスキー': [
+    {
+      key: 'whisky_smoky', text: 'スモーキーさの好みは？',
+      hint: 'ウイスキーの燻製香（ピート）の好みを教えてください',
+      options: [
+        { icon: '🔥', label: 'スモーキー大好き',         sub: 'ピーティーな個性が好み',   weight: { bitter: 3, body: 2, acid: -1, sweet: -1 } },
+        { icon: '💨', label: '少しスモーキーが好き',     sub: '程よい燻製香',             weight: { bitter: 1, body: 1 } },
+        { icon: '🌿', label: 'あまりスモーキーでなくて良い', sub: '穏やかな香りが好き',   weight: { bitter: -1, sweet: 1 } },
+        { icon: '🙅', label: 'スモーキーは苦手',         sub: 'フルーティ・甘い系が好き', weight: { bitter: -3, sweet: 2, fruity: 1 } },
+      ]
+    },
+    {
+      key: 'whisky_type', text: 'どのタイプが気になりますか？',
+      hint: 'ウイスキーのタイプを教えてください',
+      options: [
+        { icon: '🏔️', label: 'シングルモルト', sub: '個性と複雑さを楽しみたい',  weight: { body: 2, strong: 1, bitter: 1 }, filterTypes: ['ｽｺｯﾁ･ｳｲｽｷｰ','ｱｲﾘｯｼｭ･ｳｲｽｷｰ'] },
+        { icon: '⚖️',  label: 'ブレンデッド',   sub: 'バランスのよいもの',        weight: {} },
+        { icon: '🌽', label: 'バーボン',       sub: '甘くてまろやかなもの',      weight: { sweet: 2, bitter: -1, body: 1, fruity: 1 }, filterTypes: ['ｱﾒﾘｶﾝ･ｳｲｽｷｰ'] },
+        { icon: '🎌', label: 'ジャパニーズ',   sub: '繊細・上品な味わい',        weight: { sweet: 1, bitter: -1, fruity: 1, body: 1 }, filterTypes: ['国産ｳｲｽｷｰ'] },
+      ]
+    },
+    {
+      key: 'whisky_drink', text: '飲み方のイメージは？',
+      hint: '飲み方でウイスキーの印象が大きく変わります',
+      options: [
+        { icon: '🫧', label: 'ハイボール', sub: 'ソーダで割って爽やかに', weight: { acid: 1, strong: -2, body: -2, fruity: 1 } },
+        { icon: '🧊', label: 'ロック',     sub: '氷でゆっくり味わう',    weight: { body: 1 } },
+        { icon: '💧', label: '水割り',     sub: 'やわらかく飲みたい',    weight: { strong: -1, body: -1 } },
+        { icon: '🥃', label: 'ストレート', sub: '原液で深みを味わう',    weight: { strong: 2, body: 2 } },
+      ]
+    },
+  ],
+
+  'スピリッツ': [
+    {
+      key: 'spirits_type', text: 'どれが気になりますか？',
+      hint: 'スピリッツの種類を選んでください',
+      options: [
+        { icon: '🌿', label: 'ジン',     sub: 'ハーバル・ボタニカルな香り', weight: { bitter: 1, fruity: 1, acid: 1, sweet: -1 }, filterTypes: ['ジン'] },
+        { icon: '🌵', label: 'テキーラ', sub: '力強い・個性的な味わい',    weight: { strong: 2, bitter: 1, body: 1, fruity: -1 }, filterTypes: ['テキーラ'] },
+        { icon: '🍬', label: 'ラム',     sub: '甘くてまろやか・南国感',    weight: { sweet: 2, body: 1, fruity: 1, bitter: -1 }, filterTypes: ['ラム'] },
+        { icon: '🌈', label: 'なんでも', sub: '色々試してみたい',          weight: {} },
+      ]
+    },
+    {
+      key: 'spirits_drink', text: '飲み方のイメージは？',
+      hint: 'どんなシーンで飲みますか？',
+      options: [
+        { icon: '🍹', label: 'カクテルに使いたい',  sub: 'ミックスして楽しむ',     weight: { fruity: 1, acid: 1, sweet: 1, strong: -2 } },
+        { icon: '🫧', label: 'ソーダ割り・ハイボール', sub: '炭酸でさっぱり飲む', weight: { acid: 1, strong: -1, body: -2 } },
+        { icon: '🥃', label: 'ストレート・ロック', sub: '原液で深みを楽しむ',      weight: { strong: 2, body: 2 } },
+      ]
+    },
+  ],
+
+  'ビール': [
+    {
+      key: 'beer_style', text: 'どんなビールが好きですか？',
+      hint: 'ビールのスタイルを教えてください',
+      options: [
+        { icon: '🍺', label: 'のどごし系（ラガー）',    sub: 'すっきり・爽快なのどごし',  weight: { bitter: -1, body: -2, acid: 1, strong: -1 } },
+        { icon: '🌾', label: '香り豊かなクラフト（エール）', sub: 'フルーティで個性的', weight: { fruity: 2, bitter: 1, body: 1, sweet: 1 } },
+        { icon: '🌑', label: '黒ビール・スタウト',       sub: 'どっしりとしたコクと苦み', weight: { bitter: 3, body: 3, sweet: 1, strong: 1 } },
+        { icon: '🍋', label: 'フルーティ・軽め（小麦系）', sub: '飲みやすく爽やか',      weight: { fruity: 3, sweet: 1, bitter: -1, body: -1, acid: 1 } },
+      ]
+    },
+    {
+      key: 'beer_bitter', text: '苦みの好みは？',
+      hint: 'ビールの苦さの好みを教えてください',
+      options: [
+        { icon: '☕', label: 'しっかり苦い方が好き', sub: 'ホップの苦みが好み',     weight: { bitter: 3, body: 1 } },
+        { icon: '👍', label: '程よい苦みが好き',   sub: 'バランスのいい苦さ',      weight: { bitter: 1 } },
+        { icon: '🙆', label: 'あまり苦くなくていい', sub: '苦みは控えめがいい',    weight: { bitter: -2 } },
+        { icon: '🙅', label: '苦いのは苦手',       sub: '苦みは極力避けたい',     weight: { bitter: -3, sweet: 1, fruity: 1 } },
+      ]
+    },
+    {
+      key: 'beer_strength', text: 'アルコールの強さは？',
+      hint: 'ビールのアルコール度数の好みを教えてください',
+      options: [
+        { icon: '🌿', label: '低アルコール・発泡酒', sub: '軽く飲みたい',             weight: { strong: -2, body: -1 }, filterTypes: ['発泡酒','ノンアルコールビール'] },
+        { icon: '🍺', label: '普通のビール',         sub: 'スタンダードな強さ',       weight: {} },
+        { icon: '💪', label: 'しっかり目',           sub: 'アルコールをしっかり感じたい', weight: { strong: 2, body: 1 } },
+      ]
+    },
+  ],
+
+  'リキュール': [
+    {
+      key: 'liqueur_base', text: 'どんな素材が好きですか？',
+      hint: 'リキュールの素材・テイストを選んでください',
+      options: [
+        { icon: '🌸', label: '梅・果実酒',      sub: 'さっぱりした酸味と甘み',  weight: { acid: 2, sweet: 1, fruity: 2, bitter: -1 } },
+        { icon: '🍋', label: '柑橘・爽やか系',  sub: 'ジューシーで爽快な香り',  weight: { acid: 2, fruity: 2, bitter: 1, sweet: -1 } },
+        { icon: '🌿', label: '薬草・ハーブ系',  sub: '個性的で複雑な風味',      weight: { bitter: 2, body: 1, sweet: -1 } },
+        { icon: '🍓', label: '甘くてフルーティ', sub: '果実感たっぷりの甘口',   weight: { sweet: 3, fruity: 3, bitter: -2, acid: -1 } },
+        { icon: '🌈', label: 'なんでもOK',      sub: 'いろいろ試したい',        weight: {} },
+      ]
+    },
+    {
+      key: 'liqueur_sweet', text: '甘さの好みは？',
+      hint: 'お酒の甘さの好みを教えてください',
+      options: [
+        { icon: '🍭', label: 'しっかり甘い',     sub: 'デザート感覚で楽しみたい', weight: { sweet: 3, bitter: -1 } },
+        { icon: '🌸', label: 'やや甘い',         sub: 'ほんのり甘さを感じたい',  weight: { sweet: 1 } },
+        { icon: '💧', label: '甘すぎないのが好き', sub: 'さっぱりめが好き',       weight: { sweet: -1, acid: 1 } },
+        { icon: '⚡', label: '甘いのは苦手',      sub: 'ドライ・辛口が好き',     weight: { sweet: -3, acid: 2, bitter: 1 } },
+      ]
+    },
+    {
+      key: 'liqueur_drink', text: '飲み方のイメージは？',
+      hint: 'どんな風に飲みたいですか？',
+      options: [
+        { icon: '🥃', label: 'そのまま（ストレート・ロック）', sub: '素材の味をそのまま楽しむ', weight: { sweet: 1, body: 1, strong: 1 } },
+        { icon: '🫧', label: 'ソーダで割って',                sub: '炭酸でさっぱり飲む',      weight: { acid: 1, sweet: -1, body: -2, strong: -2 } },
+        { icon: '🍹', label: 'カクテルのベースに',            sub: 'ミックスして楽しむ',       weight: { fruity: 1, acid: 1, strong: -1 } },
+      ]
+    },
+  ],
+
+  'なんでも': [
+    {
+      key: 'occasion', text: '今日はどんなひとときを過ごしますか？',
+      hint: 'お酒を楽しむシーンを教えてください',
+      options: [
+        { icon: '🍽️', label: '食事のお供に',      sub: '料理と一緒に楽しみたい',   weight: {} },
+        { icon: '🛁', label: 'ゆったりリラックス',  sub: 'ひとり時間をゆっくりと',   weight: { sweet: 1, body: 1, strong: -1 } },
+        { icon: '👯', label: '友人とわいわい',      sub: '女子会・ホームパーティに',  weight: { sweet: 1, acid: 1, body: -1 } },
+        { icon: '🎁', label: '贈り物を探している',  sub: '大切な方へのプレゼントに', weight: { sweet: 1, bitter: -1, body: 1, strong: 1 } },
+      ]
+    },
+    {
+      key: 'sweet', text: '甘さの好みはどちらですか？',
+      hint: 'お酒の甘口・辛口の好みを教えてください',
+      options: [
+        { icon: '🍭', label: '甘口が好き',   sub: 'しっかり甘みを感じたい', weight: { sweet: 3, bitter: -2, strong: -1 } },
+        { icon: '🌸', label: 'やや甘口',     sub: '少し甘みがあると嬉しい', weight: { sweet: 2, bitter: -1 } },
+        { icon: '⚖️',  label: 'どちらでもOK', sub: 'バランスが大事',        weight: {} },
+        { icon: '🗻', label: 'やや辛口',     sub: '少しキリッとしたい',    weight: { sweet: -1, bitter: 1, acid: 1 } },
+        { icon: '⚡', label: '辛口が好き',   sub: 'キレがあるのが好き',    weight: { sweet: -3, bitter: 2, acid: 1, strong: 1 } },
+      ]
+    },
+    {
+      key: 'bitter', text: '苦みはお好きですか？',
+      hint: 'ビールやコーヒーの苦みをイメージしてください',
+      options: [
+        { icon: '☕', label: '苦いのが大好き',  sub: 'ガツンとくる苦みが好み',   weight: { sweet: -2, bitter: 3, body: 2, strong: 1 } },
+        { icon: '👍', label: '苦みは平気',     sub: 'ある程度なら気にならない', weight: { bitter: 1 } },
+        { icon: '🤔', label: 'どちらでもない', sub: 'こだわりはない',           weight: {} },
+        { icon: '🙅', label: '苦みは苦手',     sub: 'なるべく避けたい',         weight: { sweet: 1, bitter: -3, body: -1 } },
+      ]
+    },
+    {
+      key: 'acid', text: '酸味・さっぱり感の好みは？',
+      hint: 'レモンサワーやワインの酸味をイメージしてください',
+      options: [
+        { icon: '🍋', label: '酸っぱいのが好き',    sub: '爽やかな酸味が好み',    weight: { sweet: -1, acid: 3, body: -1, fruity: 2 } },
+        { icon: '✨', label: '少し酸味があると良い', sub: '程よい爽やかさが欲しい', weight: { acid: 1, fruity: 1 } },
+        { icon: '😌', label: 'どちらでもいい',      sub: '特にこだわらない',       weight: {} },
+        { icon: '🤐', label: '酸味はなくていい',    sub: '酸味は苦手',            weight: { sweet: 1, acid: -3, body: 1, fruity: -1 } },
+      ]
+    },
+    {
+      key: 'body', text: 'お酒のコク・重さはどれくらいが好みですか？',
+      hint: 'のど越しの軽さ・重さの好みを教えてください',
+      options: [
+        { icon: '💧', label: 'あっさり・さっぱり', sub: '軽くてスルッと飲みたい',  weight: { bitter: -1, acid: 1, body: -3, strong: -1 } },
+        { icon: '🌊', label: '少し軽め',          sub: 'さっぱりめが好き',        weight: { body: -1 } },
+        { icon: '⚖️',  label: 'ちょうどいい',      sub: 'バランスが取れたもの',    weight: {} },
+        { icon: '🍖', label: 'コクがある',         sub: 'しっかりした飲みごたえ',  weight: { bitter: 1, body: 2, strong: 1 } },
+        { icon: '🔥', label: '濃厚でどっしり',     sub: '重厚な飲みごたえが好き',  weight: { sweet: 1, bitter: 2, acid: -1, body: 3, strong: 2 } },
+      ]
+    },
+    {
+      key: 'strong', text: 'アルコールの強さはどれくらいが好みですか？',
+      hint: 'お酒の強さの好みを教えてください',
+      options: [
+        { icon: '🌿', label: '弱め（低アルコール）', sub: '飲みやすさを重視したい',     weight: { sweet: 1, bitter: -1, body: -1, strong: -3 } },
+        { icon: '🌤️', label: 'ふつう',              sub: '一般的な強さがいい',         weight: {} },
+        { icon: '💪', label: 'しっかり強め',         sub: 'アルコールをしっかり感じたい', weight: { sweet: -1, bitter: 1, body: 1, strong: 3 } },
+      ]
+    },
+  ],
+};
+
+/* ===================================================
+   STATE
+=================================================== */
+let currentQ = 0;           // 0 = ジャンル選択, 1以降 = ジャンル別Q
+let answers = [];
+let selectedGenre = 'なんでも';
+let selectedSubTypes = null; // 焼酎サブジャンル等の追加絞り込み
+let userProfile = { sweet: 3, bitter: 2, acid: 2, body: 2, strong: 2, fruity: 2 };
+let lastResults = [];
+let selectedProductId = null;
+
+function currentGenreQuestions() {
+  return GENRE_QUESTIONS[selectedGenre] || GENRE_QUESTIONS['なんでも'];
+}
+function totalQuestions() {
+  return 1 + currentGenreQuestions().length;
+}
+
+/* ===================================================
+   SWIPE
+=================================================== */
+let swipeProducts = [];
+let swipeIndex = 0;
+
+function getSwipeProducts() {
+  const cats = GENRE_MAP[selectedGenre];
+  if (!cats) return [];
+  const set = new Set(cats);
+  const pool = PRODUCTS.filter(p => set.has(p.type) && p.image);
+
+  // サブカテゴリごとに分けて多様性を確保
+  const byType = {};
+  pool.forEach(p => { (byType[p.type] = byType[p.type] || []).push(p); });
+  const types = Object.keys(byType);
+  const selected = [];
+  for (let round = 0; selected.length < 8; round++) {
+    let added = false;
+    for (const t of types) {
+      if (byType[t][round]) { selected.push(byType[t][round]); added = true; }
+      if (selected.length >= 8) break;
+    }
+    if (!added) break;
+  }
+  return selected;
+}
+
+function showSwipeScreen() {
+  swipeProducts = getSwipeProducts();
+  if (swipeProducts.length === 0) { finishSwipe(); return; }
+  swipeIndex = 0;
+
+  // ドット生成
+  const dotsEl = document.getElementById('swipe-dots');
+  dotsEl.innerHTML = swipeProducts.map((_, i) => `<div class="swipe-dot${i === 0 ? ' current' : ''}"></div>`).join('');
+  document.getElementById('swipe-tot').textContent = swipeProducts.length;
+
+  renderSwipeCard();
+  showScreen('screen-swipe');
+}
+
+function renderSwipeCard() {
+  const p = swipeProducts[swipeIndex];
+  document.getElementById('swipe-cur').textContent = swipeIndex + 1;
+  document.getElementById('swipe-type').textContent = p.type;
+  document.getElementById('swipe-name').textContent = p.name;
+  document.getElementById('swipe-price').textContent = p.price ? `¥${p.price.toLocaleString()}（税込）` : '';
+
+  const wrap = document.getElementById('swipe-img-wrap');
+  wrap.innerHTML = p.image
+    ? `<img src="${p.image}" alt="${p.name}" loading="eager">`
+    : `<span class="swipe-icon">${p.icon}</span>`;
+
+  // ドット更新
+  document.querySelectorAll('.swipe-dot').forEach((d, i) => {
+    d.className = 'swipe-dot' + (i < swipeIndex ? ' done' : i === swipeIndex ? ' current' : '');
+  });
+
+  // カードアニメーションリセット
+  const card = document.getElementById('swipe-card');
+  card.className = 'swipe-card';
+  void card.offsetWidth; // reflow
+}
+
+function swipeRate(rating) {
+  applySwipeRating(swipeProducts[swipeIndex], rating);
+  const card = document.getElementById('swipe-card');
+  card.classList.add(rating === 'yes' ? 'out-yes' : rating === 'meh' ? 'out-meh' : 'out-no');
+  setTimeout(() => {
+    swipeIndex++;
+    if (swipeIndex >= swipeProducts.length) finishSwipe();
+    else renderSwipeCard();
+  }, 380);
+}
+
+function applySwipeRating(product, rating) {
+  if (rating === 'no') return;
+  const pull = rating === 'yes' ? 0.35 : -0.12;
+  const prof = product.profile;
+  ['sweet','bitter','acid','body','strong','fruity'].forEach(k => {
+    const diff = (prof[k] || 2) - (userProfile[k] || 2);
+    userProfile[k] = Math.max(1, Math.min(5, userProfile[k] + diff * pull));
+  });
+}
+
+function skipSwipe() { finishSwipe(); }
+
+function finishSwipe() {
+  showScreen('screen-question');
+  renderQuestion();
+}
+
+/* ===================================================
+   NAVIGATION
+=================================================== */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  el.classList.add('active');
+  el.style.animation = 'none';
+  requestAnimationFrame(() => {
+    el.style.animation = '';
+  });
+}
+
+function startQuiz() {
+  currentQ = 0;
+  answers = [];
+  selectedGenre = 'なんでも';
+  selectedSubTypes = null;
+  userProfile = { sweet: 3, bitter: 2, acid: 2, body: 2, strong: 2, fruity: 2 };
+  renderQuestion();
+  showScreen('screen-question');
+}
+
+function goBack() {
+  if (currentQ === 0) {
+    showScreen('screen-welcome');
+    return;
+  }
+  currentQ--;
+  // Undo last answer's weight
+  if (answers[currentQ]) {
+    const ans = answers[currentQ];
+    const w = ans.weight;
+    if (w) {
+      for (const key in w) {
+        userProfile[key] = (userProfile[key] || 2) - (w[key] || 0);
+      }
+    }
+    if (ans.genre !== undefined) selectedGenre = 'なんでも';
+    if (ans.filterTypes)        selectedSubTypes = null;
+    answers.pop();
+  }
+  renderQuestion();
+}
+
+function restartQuiz() {
+  showScreen('screen-welcome');
+}
+
+/* ===================================================
+   RENDER QUESTION
+=================================================== */
+function renderQuestion() {
+  const q = currentQ === 0 ? GENRE_QUESTION : currentGenreQuestions()[currentQ - 1];
+  const total = totalQuestions();
+  const pct = Math.round((currentQ / total) * 100);
+
+  document.getElementById('progress-text').textContent = `質問 ${currentQ + 1} / ${total}`;
+  document.getElementById('progress-pct').textContent = `${pct}%`;
+  document.getElementById('progress-fill').style.width = `${pct}%`;
+  document.getElementById('q-step').textContent = `STEP ${currentQ + 1}`;
+  document.getElementById('q-text').textContent = q.text;
+  document.getElementById('q-hint').textContent = q.hint;
+
+  const grid = document.getElementById('q-options');
+  grid.innerHTML = '';
+  grid.className = q.options.length >= 6 ? 'options-grid many' : 'options-grid';
+
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn ripple';
+    btn.setAttribute('aria-label', opt.label);
+    btn.innerHTML = `
+      <span class="option-icon">${opt.icon}</span>
+      <span class="option-label">${opt.label}</span>
+      ${opt.sub ? `<span class="option-sub">${opt.sub}</span>` : ''}
+    `;
+    btn.addEventListener('click', (e) => {
+      addRipple(e, btn);
+      selectOption(opt, btn);
+    });
+    grid.appendChild(btn);
+  });
+}
+
+function addRipple(e, btn) {
+  const rect = btn.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  const x = (e.clientX || rect.left + rect.width/2) - rect.left - size/2;
+  const y = (e.clientY || rect.top + rect.height/2) - rect.top - size/2;
+  const ripple = document.createElement('span');
+  ripple.className = 'ripple-effect';
+  ripple.style.cssText = `width:${size}px;height:${size}px;left:${x}px;top:${y}px`;
+  btn.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 700);
+}
+
+function selectOption(opt, btn) {
+  document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+
+  // ジャンル選択
+  if (opt.genre !== undefined) {
+    selectedGenre = opt.genre;
+  }
+
+  // 味覚プロファイルへの加算
+  if (opt.weight) {
+    for (const key in opt.weight) {
+      userProfile[key] = Math.max(1, Math.min(5, (userProfile[key] || 2) + (opt.weight[key] || 0)));
+    }
+  }
+  answers.push(opt);
+
+  // サブジャンル絞り込み（焼酎・ビール等）
+  if (opt.filterTypes) selectedSubTypes = opt.filterTypes;
+
+  setTimeout(() => {
+    currentQ++;
+    if (currentQ >= totalQuestions()) {
+      showResults();
+    } else if (currentQ === 1 && selectedGenre !== 'なんでも') {
+      // ジャンル選択直後 → スワイプ評価画面へ
+      showSwipeScreen();
+    } else {
+      renderQuestion();
+    }
+  }, 300);
+}
+
+/* ===================================================
+   SCORING & RESULTS
+=================================================== */
+function scoreProduct(product) {
+  const p = product.profile;
+  const u = userProfile;
+  const weights = { sweet: 2.0, bitter: 1.8, acid: 1.5, body: 1.5, strong: 1.8, fruity: 1.0 };
+  let dist = 0;
+  for (const key in weights) {
+    const diff = (p[key] || 2) - (u[key] || 2);
+    dist += weights[key] * diff * diff;
+  }
+  const maxDist = Object.values(weights).reduce((a, b) => a + b * 16, 0);
+  return Math.round((1 - dist / maxDist) * 100);
+}
+
+// カテゴリ多様性を保ちながら上位5件を選ぶ
+function selectDiverseTop(scored, n) {
+  const result = [];
+  const usedCats = {};
+  // 1位は純粋に最高スコア
+  result.push(scored[0]);
+  usedCats[scored[0].type] = 1;
+  // 2〜nはカテゴリの重複を最大2に制限
+  for (let i = 1; i < scored.length && result.length < n; i++) {
+    const p = scored[i];
+    const cnt = usedCats[p.type] || 0;
+    if (cnt < 2) {
+      result.push(p);
+      usedCats[p.type] = cnt + 1;
+    }
+  }
+  return result;
+}
+
+function getFilteredProducts() {
+  // サブジャンル絞り込みが優先（例：芋焼酎のみ）
+  const cats = selectedSubTypes || GENRE_MAP[selectedGenre];
+  if (!cats) return PRODUCTS;
+  const set = new Set(cats);
+  return PRODUCTS.filter(p => set.has(p.type));
+}
+
+function getPairing(product) {
+  const map = {
+    '純米大吟醸':'🐟 お刺身・白身魚 / 🧀 クリームチーズ',
+    '大吟醸':    '🐟 お刺身・海老 / 🥗 サラダ',
+    '純米吟醸':  '🍣 お寿司・刺身 / 🧄 蒸し料理',
+    '吟醸':      '🐟 白身魚 / 🥚 茶碗蒸し',
+    '特別純米':  '🍖 焼き鳥 / 🥢 煮物',
+    '純米':      '🥩 焼き魚 / 🥢 おでん',
+    '本醸造':    '🍙 和食全般 / 🍗 揚げ物',
+    '清酒':      '🍙 和食全般 / 🐟 海鮮',
+    '普通酒':    '🍙 和食全般',
+    '焼酎乙類いも':  '🥩 豚の角煮 / 🥒 漬け物',
+    '焼酎乙類むぎ':  '🐟 刺身 / 🍙 和食全般',
+    '焼酎乙類こめ':  '🍣 お寿司 / 🐟 淡白な魚',
+    '焼酎乙類泡盛':  '🥩 沖縄料理 / 🐷 豚肉料理',
+    '焼酎乙類黒糖':  '🍫 チョコレート / 🍰 スイーツ',
+    '国産ｳｲｽｷｰ':  '🍫 チョコレート / 🧀 ハードチーズ',
+    'ｽｺｯﾁ･ｳｲｽｷｰ': '🧀 チーズ / 🥩 スモーク料理',
+    'ｱｲﾘｯｼｭ･ｳｲｽｷｰ':'🍫 チョコ / 🥮 スコーン',
+    'ｱﾒﾘｶﾝ･ｳｲｽｷｰ': '🍖 BBQ / 🧀 チェダーチーズ',
+    'フランスワイン': '🧀 チーズ / 🥩 肉料理 / 🐟 魚介',
+    'イタリアワイン': '🍝 パスタ / 🍕 ピザ / 🧀 チーズ',
+    'スペインワイン': '🥘 煮込み料理 / 🥩 ハム',
+    'チリワイン':    '🥩 BBQ・ステーキ',
+    'ドイツワイン':  '🍰 デザート / 🧀 ブルーチーズ',
+    'アメリカワイン': '🥩 ステーキ / 🍔 グリル',
+    'ジン':     '🍋 柑橘系 / 🥗 サラダ',
+    'テキーラ': '🌮 メキシコ料理 / 🍋 ライム',
+    'ラム':     '🍫 チョコ / 🍰 ケーキ',
+    'その他のﾘｷｭｰﾙ': '🍓 フルーツ / 🧀 クリームチーズ / 🍰 スイーツ',
+    '甘味果実酒': '🍓 フルーツ / 🧀 クリームチーズ / 🍰 デザート',
+    '果実酒':    '🍓 フルーツ / 🍰 スイーツ',
+    'アサヒ':   '🍗 唐揚げ / 🥜 枝豆',
+    'キリン':   '🍗 唐揚げ / 🍕 ピザ',
+    'サントリー':'🍗 唐揚げ / 🧀 チーズ',
+    'サッポロ': '🍗 唐揚げ / 🥜 枝豆',
+  };
+  if (map[product.type]) return map[product.type];
+  const t = (product.tags || []).join(' ');
+  if (t.includes('フルーティ') || t.includes('甘口')) return '🍓 フルーツ / 🧀 クリームチーズ / 🍰 スイーツ';
+  if (t.includes('辛口') || t.includes('淡麗'))       return '🐟 刺身・魚介 / 🥗 さっぱり和食';
+  if (t.includes('濃醇') || t.includes('コク'))       return '🥩 肉料理 / 🍫 チョコレート';
+  return '🍽️ お好みの料理と';
+}
+
+function showResults() {
+  const pool = getFilteredProducts();
+  const scored = pool.map(p => ({ ...p, score: scoreProduct(p) }))
+    .sort((a, b) => b.score - a.score);
+
+  const top = selectDiverseTop(scored, 5);
+  lastResults = top;
+  selectedProductId = null;
+  const btnPrint = document.getElementById('btn-print-main');
+  if (btnPrint) btnPrint.disabled = true;
+  const hint = document.getElementById('select-hint');
+  if (hint) hint.classList.remove('hidden');
+
+  // Profile bars
+  const profileBars = document.getElementById('profile-bars');
+  const dims = [
+    { key: 'sweet',  left: '辛口', right: '甘口' },
+    { key: 'bitter', left: '苦みなし', right: '苦み強' },
+    { key: 'acid',   left: '酸味なし', right: '酸味強' },
+    { key: 'body',   left: 'あっさり', right: '濃厚' },
+    { key: 'strong', left: '弱め', right: '強め' },
+  ];
+  profileBars.innerHTML = dims.map(d => `
+    <div class="profile-bar-row">
+      <div class="profile-bar-label">${d.left}</div>
+      <div class="profile-bar-bg">
+        <div class="profile-bar-fill" style="width:0%" data-val="${(userProfile[d.key]-1)/4*100}"></div>
+      </div>
+      <div class="profile-bar-label" style="text-align:left">${d.right}</div>
+    </div>
+  `).join('');
+
+  // Product cards
+  const grid = document.getElementById('products-grid');
+  grid.innerHTML = top.map((p, i) => {
+    const rank = i + 1;
+    const rankLabel = rank === 1 ? '🥇 BEST MATCH' : rank === 2 ? '🥈 2位' : rank === 3 ? '🥉 3位' : `${rank}位`;
+    const stars = '★'.repeat(Math.round(p.score / 20)) + '☆'.repeat(5 - Math.round(p.score / 20));
+    return `
+      <div class="product-card rank-${rank}" id="card-${p.id}" style="animation-delay:${i * 0.1}s" onclick="selectCard(${p.id})">
+        <div class="rank-badge">${rankLabel}</div>
+        ${p.image ? `<div class="product-img-wrap"><img src="${p.image}" alt="${p.name}" loading="lazy"></div>` : `<div class="product-icon">${p.icon}</div>`}
+        <div class="product-type">${p.type}</div>
+        <div class="product-name">${p.name}</div>
+        <div class="product-desc">${p.desc}</div>
+        <div class="product-tags">
+          ${p.tags.map(t => `<span class="tag">${t}</span>`).join('')}
+        </div>
+        ${p.price ? `<div class="product-price">¥${p.price.toLocaleString()}<span class="price-tax">（税込）</span></div>` : ''}
+        <div class="product-pairing">
+          <span class="pairing-label">PAIRING</span>
+          ${getPairing(p)}
+        </div>
+        <div class="match-score">
+          <span class="match-stars">${stars}</span>
+          <span class="match-label">マッチ度 ${p.score}%</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Result title based on profile
+  const resultTitle = document.getElementById('result-title');
+  const resultSub = document.getElementById('result-sub');
+  const dominant = getDominantFlavor();
+  resultTitle.innerHTML = dominant.title;
+  resultSub.textContent = dominant.sub;
+
+  showScreen('screen-result');
+
+  // QRコード生成
+  if (typeof QRCode !== 'undefined') {
+    setTimeout(generateQR, 300);
+  }
+
+  // Animate profile bars after render
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.profile-bar-fill').forEach(el => {
+      el.style.width = el.dataset.val + '%';
+    });
+  });
+}
+
+function selectCard(productId) {
+  document.querySelectorAll('.product-card').forEach(c => c.classList.remove('selected-card'));
+  document.getElementById('card-' + productId).classList.add('selected-card');
+  selectedProductId = productId;
+  const btn = document.getElementById('btn-print-main');
+  if (btn) btn.disabled = false;
+  const hint = document.getElementById('select-hint');
+  if (hint) hint.classList.add('hidden');
+}
+
+function printSelected() {
+  if (!selectedProductId) return;
+  printProduct(selectedProductId);
+}
+
+function printProduct(productId) {
+  const p = lastResults.find(r => r.id === productId);
+  if (!p) return;
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  document.getElementById('ps-date').textContent = dateStr;
+  document.getElementById('ps-icon').textContent = p.icon;
+  document.getElementById('ps-type').textContent = p.type;
+  document.getElementById('ps-name').textContent = p.name;
+  document.getElementById('ps-desc').textContent = p.desc;
+  document.getElementById('ps-tags').innerHTML = (p.tags || []).map(t => `<span class="ps-tag">${t}</span>`).join('');
+  document.getElementById('ps-price').innerHTML = p.price ? `¥${p.price.toLocaleString()}<span class="ps-price-tax">（税込）</span>` : '';
+  document.getElementById('ps-pairing').textContent = getPairing(p);
+  const stars = '★'.repeat(Math.round(p.score / 20)) + '☆'.repeat(5 - Math.round(p.score / 20));
+  document.getElementById('ps-match').textContent = `${stars}  マッチ度 ${p.score}%`;
+  window.print();
+}
+
+function getDominantFlavor() {
+  const u = userProfile;
+  const g = selectedGenre === 'なんでも' ? '' : `${selectedGenre}の中から`;
+  if (u.sweet >= 4 && u.bitter <= 2) return { title: `🍓 <em>甘口・フルーティ</em>なあなたへ`, sub: `${g}甘みとフルーティさが際立つお酒をご提案します` };
+  if (u.sweet <= 2 && u.bitter >= 3) return { title: `⚡ <em>辛口・本格派</em>なあなたへ`,   sub: `${g}キレとコクを兼ね備えたお酒をご提案します` };
+  if (u.acid >= 4 && u.body <= 2)   return { title: `🍋 <em>爽やか・さっぱり</em>派のあなたへ`, sub: `${g}酸味とさっぱり感が特徴のお酒をご提案します` };
+  if (u.body >= 4 && u.strong >= 4) return { title: `🥃 <em>濃厚・本格</em>派のあなたへ`,   sub: `${g}コクと深みのある力強いお酒をご提案します` };
+  if (u.strong <= 2)                return { title: `🌿 <em>軽やか・飲みやすい</em>派のあなたへ`, sub: `${g}飲みやすく軽やかなお酒をご提案します` };
+  return { title: `✨ <em>バランス</em>重視のあなたへ`, sub: `${g}あなたの味覚にぴったりのお酒をご提案します` };
+}
+</script>
+</body>
+</html>
