@@ -585,6 +585,8 @@
         text-align: center; font-size: 9pt; line-height: 1.8;
       }
       .ps-footer strong { font-size: 10pt; }
+      /* 複数枚印刷：各スリップの間にページ区切り */
+      .ps-slip:not(:last-child) { page-break-after: always; }
     }
 
     /* ===== iPAD MINI (768px+) ===== */
@@ -759,7 +761,7 @@
 
     <div class="products-grid" id="products-grid"></div>
 
-    <div class="select-hint" id="select-hint">👆 気に入った商品をタップして選んでください</div>
+    <div class="select-hint" id="select-hint">👆 気に入った商品をタップしてください（複数選択可）</div>
 
     <div class="btn-row">
       <button class="btn btn-print-main" id="btn-print-main" onclick="printSelected()" disabled>🖨️ 選んだ商品を印刷する</button>
@@ -779,34 +781,15 @@
 
 </div>
 
-<!-- ===== PRINT SLIP ===== -->
-<div id="print-slip">
-  <div class="ps-header">
-    <div class="ps-store">🍶 おすすめのお酒</div>
-    <div class="ps-date" id="ps-date"></div>
-  </div>
-  <div class="ps-headline">✦ あなたへのおすすめ</div>
-  <div class="ps-icon"  id="ps-icon"></div>
-  <div class="ps-type"  id="ps-type"></div>
-  <div class="ps-name"  id="ps-name"></div>
-  <div class="ps-desc"  id="ps-desc"></div>
-  <div class="ps-tags"  id="ps-tags"></div>
-  <div class="ps-price" id="ps-price"></div>
-  <div class="ps-pairing-wrap">
-    <div class="ps-pairing-label">PAIRING</div>
-    <div class="ps-pairing-text" id="ps-pairing"></div>
-  </div>
-  <div class="ps-match" id="ps-match"></div>
-  <div class="ps-footer">
-    <strong>この紙を店員にお渡しください</strong><br>
-    スタッフがお探しします
-  </div>
-</div>
+<!-- ===== PRINT SLIP (動的生成) ===== -->
+<div id="print-slip"><!-- JS で生成 --></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="products.js"></script>
+<script src="popular.js"></script>
+<script src="instock.js"></script>
 <script>
-/* PRODUCTS は products.js で定義済み */
+/* PRODUCTS は products.js で、PRODUCT_POPULARITY は popular.js で、PRODUCT_INSTOCK は instock.js で定義済み */
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('product-count');
   if (el && typeof PRODUCTS !== 'undefined') el.textContent = PRODUCTS.length.toLocaleString();
@@ -861,7 +844,7 @@ function generateQR() {
 /* ===================================================
    QUESTIONS
 =================================================== */
-// ジャンル → カテゴリのマッピング
+// ジャンル → カテゴリのマッピング（結果絞り込み用・広め）
 const GENRE_MAP = {
   '日本酒':     ['純米大吟醸','大吟醸','純米吟醸','吟醸','特別純米','純米','本醸造','特別本醸造','清酒','普通酒','合成清酒'],
   'ワイン':     ['フランスワイン','イタリアワイン','スペインワイン','国産ワイン','チリワイン','ドイツワイン','アメリカワイン','ｵｰｽﾄﾗﾘｱ','ポルトガル','舶来ワイン','アルゼンチン','南アフリカ','ルーマニア','甘味果実酒','果実酒'],
@@ -870,7 +853,26 @@ const GENRE_MAP = {
   'スピリッツ': ['ジン','テキーラ','ラム','その他のｽﾋﾟﾘｯﾂ'],
   'ビール':     ['アサヒ','キリン','サントリー','サッポロ','その他ビール','発泡酒','ノンアルコールビール','その他　8％'],
   'リキュール': ['その他のﾘｷｭｰﾙ','薬草･ﾊｰﾌﾞ花','その他の醸造酒','紹興酒 黄酒'],
+  '果実酒':     ['果実酒','甘味果実酒'],
+  'ブランデー': ['国産ﾌﾞﾗﾝﾃﾞｰ','その他のﾌﾞﾗﾝﾃﾞｰ','コニャック','ﾌﾙｰﾂ･ﾌﾞﾗﾝﾃﾞｰ'],
+  'チューハイ': ['ノンアルコールビール','その他　8％'],
+  '紹興酒':     ['紹興酒 黄酒','その他の醸造酒'],
   'なんでも':   null  // null = フィルタなし
+};
+
+// スワイプ評価用マッピング（厳密・明確に同ジャンルのものだけ）
+const SWIPE_GENRE_MAP = {
+  '日本酒':     ['純米大吟醸','大吟醸','純米吟醸','吟醸','特別純米','純米','本醸造','特別本醸造','清酒'],
+  'ワイン':     ['フランスワイン','イタリアワイン','スペインワイン','国産ワイン','チリワイン','ドイツワイン','アメリカワイン','ｵｰｽﾄﾗﾘｱ','ポルトガル','舶来ワイン','アルゼンチン','南アフリカ','ルーマニア'],
+  '焼酎':       ['焼酎乙類いも','焼酎乙類むぎ','焼酎乙類こめ','焼酎乙類泡盛','焼酎乙類黒糖','焼酎乙類その他','焼酎乙類そば'],
+  'ウイスキー': ['国産ｳｲｽｷｰ','ｽｺｯﾁ･ｳｲｽｷｰ','ｱﾒﾘｶﾝ･ｳｲｽｷｰ','ｱｲﾘｯｼｭ･ｳｲｽｷｰ','ｶﾅﾃﾞｨｱﾝ･ｳｲｽｷｰ','その他のｳｲｽｷｰ'],
+  'スピリッツ': ['ジン','テキーラ','ラム','その他のｽﾋﾟﾘｯﾂ'],
+  'ビール':     ['アサヒ','キリン','サントリー','サッポロ','その他ビール','発泡酒'],
+  'リキュール': ['その他のﾘｷｭｰﾙ','薬草･ﾊｰﾌﾞ花'],
+  '果実酒':     ['果実酒','甘味果実酒'],
+  'ブランデー': ['国産ﾌﾞﾗﾝﾃﾞｰ','その他のﾌﾞﾗﾝﾃﾞｰ','コニャック','ﾌﾙｰﾂ･ﾌﾞﾗﾝﾃﾞｰ'],
+  'チューハイ': ['ノンアルコールビール','その他　8％'],
+  '紹興酒':     ['紹興酒 黄酒','その他の醸造酒'],
 };
 
 // ジャンル選択（常に最初の質問）
@@ -886,6 +888,10 @@ const GENRE_QUESTION = {
     { icon: '🍸', label: 'スピリッツ', sub: 'ジン・テキーラ・ラムなど', genre: 'スピリッツ' },
     { icon: '🍺', label: 'ビール',     sub: '各メーカー・発泡酒',       genre: 'ビール' },
     { icon: '🍹', label: 'リキュール', sub: '梅酒・薬草・リキュール',   genre: 'リキュール' },
+    { icon: '🍑', label: '果実酒',    sub: '梅酒・果実ワインなど',     genre: '果実酒' },
+    { icon: '🥃', label: 'ブランデー', sub: 'コニャック・国産など',     genre: 'ブランデー' },
+    { icon: '🫧', label: 'チューハイ', sub: 'ノンアル・缶チューハイ',  genre: 'チューハイ' },
+    { icon: '🍶', label: '紹興酒',    sub: '紹興酒・醸造酒',          genre: '紹興酒' },
     { icon: '🌈', label: 'なんでも',   sub: '全ジャンルから提案',       genre: 'なんでも' },
   ]
 };
@@ -938,11 +944,11 @@ const GENRE_QUESTIONS = {
       key: 'wine_color', text: 'どんなワインが好きですか？',
       hint: '色や種類から選んでください',
       options: [
-        { icon: '🍷', label: '赤ワイン',          sub: 'タンニン・コク・複雑さ',    weight: { bitter: 2, body: 2, acid: 1, sweet: -1 } },
-        { icon: '🥂', label: '白ワイン',          sub: '爽やか・フルーティ・すっきり', weight: { acid: 2, body: -1, bitter: -1, fruity: 1, sweet: 1 } },
-        { icon: '🌸', label: 'ロゼ',             sub: '軽やかで飲みやすい',        weight: { sweet: 1, acid: 1, body: -1, fruity: 2 } },
-        { icon: '🍾', label: 'スパークリング・泡', sub: '爽快な泡と軽やかさ',        weight: { acid: 2, body: -2, fruity: 1, sweet: -1 } },
-        { icon: '🍯', label: '甘口・デザートワイン', sub: 'しっかりした甘みが好き',  weight: { sweet: 4, acid: 1, bitter: -3, fruity: 2 } },
+        { icon: '🍷', label: '赤ワイン',          sub: 'タンニン・コク・複雑さ',      weight: { bitter: 2, body: 2, acid: 1, sweet: -1 }, swipeKeyword: '赤ワイン' },
+        { icon: '🥂', label: '白ワイン',          sub: '爽やか・フルーティ・すっきり', weight: { acid: 2, body: -1, bitter: -1, fruity: 1, sweet: 1 }, swipeKeyword: '白ワイン' },
+        { icon: '🌸', label: 'ロゼ',             sub: '軽やかで飲みやすい',          weight: { sweet: 1, acid: 1, body: -1, fruity: 2 }, swipeKeyword: 'ロゼ' },
+        { icon: '🍾', label: 'スパークリング・泡', sub: '爽快な泡と軽やかさ',          weight: { acid: 2, body: -2, fruity: 1, sweet: -1 }, swipeKeyword: 'スパークリング' },
+        { icon: '🍯', label: '甘口・デザートワイン', sub: 'しっかりした甘みが好き',    weight: { sweet: 4, acid: 1, bitter: -3, fruity: 2 }, swipeKeyword: 'デザート' },
       ]
     },
     {
@@ -1182,6 +1188,91 @@ const GENRE_QUESTIONS = {
       ]
     },
   ],
+
+  '果実酒': [
+    {
+      key: 'fruit_sweet', text: '甘さの好みを教えてください',
+      hint: '果実酒・梅酒の甘口・辛口の好みを選んでください',
+      options: [
+        { icon: '🍭', label: 'しっかり甘口', sub: 'デザートのような甘み',   weight: { sweet: 4, acid: -1, bitter: -2 } },
+        { icon: '🍑', label: 'やや甘口',     sub: 'フルーツの自然な甘み',   weight: { sweet: 2, fruity: 2 } },
+        { icon: '🍋', label: 'さっぱり系',   sub: '酸味がありすっきり',     weight: { sweet: -1, acid: 3, fruity: 2 } },
+      ]
+    },
+    {
+      key: 'fruit_drink', text: '飲み方の好みは？',
+      hint: 'よく飲む・飲んでみたい飲み方を選んでください',
+      options: [
+        { icon: '🧊', label: 'そのまま（ロック）', sub: '果実の風味をそのままに', weight: { body: 1, strong: 1 } },
+        { icon: '🫧', label: '炭酸割り',           sub: '爽やかに楽しみたい',   weight: { acid: 1, body: -1 } },
+        { icon: '🥛', label: '牛乳・お湯割り',     sub: 'まろやかに飲みたい',   weight: { sweet: 1, body: 1, strong: -1 } },
+      ]
+    },
+  ],
+
+  'ブランデー': [
+    {
+      key: 'brandy_style', text: 'どんなブランデーが気になりますか？',
+      hint: 'お好みのスタイルを選んでください',
+      options: [
+        { icon: '🇫🇷', label: 'コニャック',       sub: 'フランス産・重厚な味わい', weight: { body: 3, bitter: 2, strong: 2, fruity: -1 } },
+        { icon: '🍎', label: 'フルーツブランデー', sub: 'りんご・さくらんぼなど',  weight: { fruity: 3, sweet: 2, body: -1 } },
+        { icon: '🗾', label: '国産ブランデー',     sub: '飲みやすい日本のブランデー', weight: { sweet: 1, body: 1, strong: 1 } },
+      ]
+    },
+    {
+      key: 'brandy_drink', text: '飲み方の好みは？',
+      hint: 'ブランデーのお好みの飲み方を選んでください',
+      options: [
+        { icon: '🥃', label: 'ストレート・ロック', sub: '香りをじっくり楽しみたい', weight: { body: 2, strong: 2 } },
+        { icon: '💧', label: '水割り・ハイボール', sub: 'すっきり飲みやすく',      weight: { body: -1, strong: -1, acid: 1 } },
+        { icon: '☕', label: 'カクテル・料理に',  sub: 'アレンジして楽しみたい',   weight: { sweet: 1, fruity: 1 } },
+      ]
+    },
+  ],
+
+  'チューハイ': [
+    {
+      key: 'chuhai_flavor', text: '好きな味系統を教えてください',
+      hint: 'よく飲む・気になるフレーバーを選んでください',
+      options: [
+        { icon: '🍋', label: 'レモン・柑橘系', sub: 'さっぱり・爽やかな酸味',   weight: { acid: 3, sweet: -1, fruity: 2 } },
+        { icon: '🍇', label: 'フルーツ系',     sub: 'ぶどう・桃・いちごなど',   weight: { sweet: 2, fruity: 3, acid: 1 } },
+        { icon: '🌿', label: 'ノンアルコール', sub: '飲みやすさ・健康志向',     weight: { sweet: 1, strong: -4, body: -2 } },
+        { icon: '🥃', label: 'ハイボール系',   sub: 'ウイスキー・焼酎ベース',   weight: { bitter: 2, sweet: -1, strong: 1 } },
+      ]
+    },
+    {
+      key: 'chuhai_strong', text: 'アルコール度数の好みは？',
+      hint: 'お好みの強さを選んでください',
+      options: [
+        { icon: '🌿', label: 'ノンアル・低め',  sub: '0〜3%程度',  weight: { strong: -4, sweet: 1 } },
+        { icon: '🌤️', label: 'ふつう（5%前後）', sub: '標準的な強さ', weight: {} },
+        { icon: '💪', label: '強め（9%〜）',    sub: 'しっかり飲みたい', weight: { strong: 3, bitter: 1, sweet: -1 } },
+      ]
+    },
+  ],
+
+  '紹興酒': [
+    {
+      key: 'shaoxing_style', text: '紹興酒・醸造酒の好みを教えてください',
+      hint: 'お好みの飲み方・スタイルを選んでください',
+      options: [
+        { icon: '♨️', label: '温めて（燗）',   sub: '香りが広がり体が温まる',   weight: { sweet: 1, body: 2, strong: 1 } },
+        { icon: '🌡️', label: '常温・冷やして', sub: 'すっきり本来の味を楽しむ', weight: { body: 1, acid: 1 } },
+        { icon: '🍽️', label: '料理と合わせて', sub: '中華料理に合わせたい',      weight: { bitter: 1, body: 1, acid: 1 } },
+      ]
+    },
+    {
+      key: 'shaoxing_sweet', text: '甘さの好みは？',
+      hint: '甘口・辛口の好みを選んでください',
+      options: [
+        { icon: '🍯', label: '甘口',  sub: 'まろやかな甘み',     weight: { sweet: 3, bitter: -1 } },
+        { icon: '⚖️', label: '中口',  sub: 'バランス重視',       weight: {} },
+        { icon: '⚡', label: '辛口',  sub: 'キリッとした辛口',   weight: { sweet: -2, bitter: 2 } },
+      ]
+    },
+  ],
 };
 
 /* ===================================================
@@ -1193,7 +1284,8 @@ let selectedGenre = 'なんでも';
 let selectedSubTypes = null; // 焼酎サブジャンル等の追加絞り込み
 let userProfile = { sweet: 3, bitter: 2, acid: 2, body: 2, strong: 2, fruity: 2 };
 let lastResults = [];
-let selectedProductId = null;
+let selectedProductIds = new Set();
+let selectedSwipeKeyword = null; // ワイン色絞り込み等
 
 function currentGenreQuestions() {
   return GENRE_QUESTIONS[selectedGenre] || GENRE_QUESTIONS['なんでも'];
@@ -1209,14 +1301,31 @@ let swipeProducts = [];
 let swipeIndex = 0;
 
 function getSwipeProducts() {
-  const cats = GENRE_MAP[selectedGenre];
+  const cats = SWIPE_GENRE_MAP[selectedGenre];
   if (!cats) return [];
   const set = new Set(cats);
-  const pool = PRODUCTS.filter(p => set.has(p.type) && p.image);
+  const popularity = (typeof PRODUCT_POPULARITY !== 'undefined') ? PRODUCT_POPULARITY : {};
 
-  // サブカテゴリごとに分けて多様性を確保
+  const instock = (typeof PRODUCT_INSTOCK !== 'undefined') ? PRODUCT_INSTOCK : null;
+  let pool = PRODUCTS.filter(p => set.has(p.type) && p.image && (!instock || instock[p.id]));
+
+  // ワイン色等のキーワードで絞り込み
+  if (selectedSwipeKeyword) {
+    const kw = selectedSwipeKeyword;
+    const filtered = pool.filter(p =>
+      p.desc.includes(kw) || p.name.includes(kw) || (p.tags || []).some(t => t.includes(kw))
+    );
+    if (filtered.length >= 4) pool = filtered; // 4件以上あれば絞り込む
+  }
+
+  // サブカテゴリごとに分けて、各カテゴリ内は人気順に並べる
   const byType = {};
   pool.forEach(p => { (byType[p.type] = byType[p.type] || []).push(p); });
+  Object.values(byType).forEach(arr => {
+    arr.sort((a, b) => (popularity[b.id] || 0) - (popularity[a.id] || 0));
+  });
+
+  // 各カテゴリから人気1位→人気2位→...の順でラウンドロビン
   const types = Object.keys(byType);
   const selected = [];
   for (let round = 0; selected.length < 8; round++) {
@@ -1313,6 +1422,7 @@ function startQuiz() {
   answers = [];
   selectedGenre = 'なんでも';
   selectedSubTypes = null;
+  selectedSwipeKeyword = null;
   userProfile = { sweet: 3, bitter: 2, acid: 2, body: 2, strong: 2, fruity: 2 };
   renderQuestion();
   showScreen('screen-question');
@@ -1411,13 +1521,18 @@ function selectOption(opt, btn) {
 
   // サブジャンル絞り込み（焼酎・ビール等）
   if (opt.filterTypes) selectedSubTypes = opt.filterTypes;
+  // スワイプキーワード（ワイン色等）
+  if (opt.swipeKeyword !== undefined) selectedSwipeKeyword = opt.swipeKeyword;
 
   setTimeout(() => {
     currentQ++;
     if (currentQ >= totalQuestions()) {
       showResults();
-    } else if (currentQ === 1 && selectedGenre !== 'なんでも') {
-      // ジャンル選択直後 → スワイプ評価画面へ
+    } else if (currentQ === 1 && selectedGenre !== 'なんでも' && selectedGenre !== 'ワイン') {
+      // ジャンル選択直後（ワイン以外）→ スワイプ評価画面へ
+      showSwipeScreen();
+    } else if (currentQ === 2 && selectedGenre === 'ワイン') {
+      // ワイン：色・種類を聞いた後 → スワイプ評価画面へ
       showSwipeScreen();
     } else {
       renderQuestion();
@@ -1463,9 +1578,10 @@ function selectDiverseTop(scored, n) {
 function getFilteredProducts() {
   // サブジャンル絞り込みが優先（例：芋焼酎のみ）
   const cats = selectedSubTypes || GENRE_MAP[selectedGenre];
-  if (!cats) return PRODUCTS;
+  const instock = (typeof PRODUCT_INSTOCK !== 'undefined') ? PRODUCT_INSTOCK : null;
+  if (!cats) return instock ? PRODUCTS.filter(p => instock[p.id]) : PRODUCTS;
   const set = new Set(cats);
-  return PRODUCTS.filter(p => set.has(p.type));
+  return PRODUCTS.filter(p => set.has(p.type) && (!instock || instock[p.id]));
 }
 
 function getPairing(product) {
@@ -1520,9 +1636,10 @@ function showResults() {
 
   const top = selectDiverseTop(scored, 5);
   lastResults = top;
-  selectedProductId = null;
+  selectedProductIds = new Set();
+  selectedSwipeKeyword = null;
   const btnPrint = document.getElementById('btn-print-main');
-  if (btnPrint) btnPrint.disabled = true;
+  if (btnPrint) { btnPrint.disabled = true; btnPrint.textContent = '🖨️ 選んだ商品を印刷する'; }
   const hint = document.getElementById('select-hint');
   if (hint) hint.classList.remove('hidden');
 
@@ -1597,36 +1714,64 @@ function showResults() {
 }
 
 function selectCard(productId) {
-  document.querySelectorAll('.product-card').forEach(c => c.classList.remove('selected-card'));
-  document.getElementById('card-' + productId).classList.add('selected-card');
-  selectedProductId = productId;
+  // トグル選択（タップで ON/OFF）
+  if (selectedProductIds.has(productId)) {
+    selectedProductIds.delete(productId);
+    document.getElementById('card-' + productId).classList.remove('selected-card');
+  } else {
+    selectedProductIds.add(productId);
+    document.getElementById('card-' + productId).classList.add('selected-card');
+  }
+  const count = selectedProductIds.size;
   const btn = document.getElementById('btn-print-main');
-  if (btn) btn.disabled = false;
   const hint = document.getElementById('select-hint');
-  if (hint) hint.classList.add('hidden');
+  if (btn) {
+    btn.disabled = count === 0;
+    btn.textContent = count === 0
+      ? '🖨️ 選んだ商品を印刷する'
+      : `🖨️ ${count}件を印刷する`;
+  }
+  if (hint) hint.classList.toggle('hidden', count > 0);
 }
 
 function printSelected() {
-  if (!selectedProductId) return;
-  printProduct(selectedProductId);
-}
-
-function printProduct(productId) {
-  const p = lastResults.find(r => r.id === productId);
-  if (!p) return;
+  if (selectedProductIds.size === 0) return;
   const now = new Date();
   const dateStr = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-  document.getElementById('ps-date').textContent = dateStr;
-  document.getElementById('ps-icon').textContent = p.icon;
-  document.getElementById('ps-type').textContent = p.type;
-  document.getElementById('ps-name').textContent = p.name;
-  document.getElementById('ps-desc').textContent = p.desc;
-  document.getElementById('ps-tags').innerHTML = (p.tags || []).map(t => `<span class="ps-tag">${t}</span>`).join('');
-  document.getElementById('ps-price').innerHTML = p.price ? `¥${p.price.toLocaleString()}<span class="ps-price-tax">（税込）</span>` : '';
-  document.getElementById('ps-pairing').textContent = getPairing(p);
-  const stars = '★'.repeat(Math.round(p.score / 20)) + '☆'.repeat(5 - Math.round(p.score / 20));
-  document.getElementById('ps-match').textContent = `${stars}  マッチ度 ${p.score}%`;
+  const slips = [...selectedProductIds].map(id => {
+    const p = lastResults.find(r => r.id === id);
+    return p ? buildSlipHTML(p, dateStr) : '';
+  }).filter(Boolean);
+  document.getElementById('print-slip').innerHTML = slips.join('');
   window.print();
+}
+
+function buildSlipHTML(p, dateStr) {
+  const stars = '★'.repeat(Math.round(p.score / 20)) + '☆'.repeat(5 - Math.round(p.score / 20));
+  const tags = (p.tags || []).map(t => `<span class="ps-tag">${t}</span>`).join('');
+  const price = p.price ? `¥${p.price.toLocaleString()}<span class="ps-price-tax">（税込）</span>` : '';
+  return `<div class="ps-slip">
+    <div class="ps-header">
+      <div class="ps-store">🍶 おすすめのお酒</div>
+      <div class="ps-date">${dateStr}</div>
+    </div>
+    <div class="ps-headline">✦ あなたへのおすすめ</div>
+    <div class="ps-icon">${p.icon}</div>
+    <div class="ps-type">${p.type}</div>
+    <div class="ps-name">${p.name}</div>
+    <div class="ps-desc">${p.desc}</div>
+    <div class="ps-tags">${tags}</div>
+    <div class="ps-price">${price}</div>
+    <div class="ps-pairing-wrap">
+      <div class="ps-pairing-label">PAIRING</div>
+      <div class="ps-pairing-text">${getPairing(p)}</div>
+    </div>
+    <div class="ps-match">${stars}  マッチ度 ${p.score}%</div>
+    <div class="ps-footer">
+      <strong>この紙を店員にお渡しください</strong><br>
+      スタッフがお探しします
+    </div>
+  </div>`;
 }
 
 function getDominantFlavor() {
