@@ -1364,7 +1364,7 @@ function renderSwipeCard() {
 
   const wrap = document.getElementById('swipe-img-wrap');
   wrap.innerHTML = p.image
-    ? `<img src="${p.image}" alt="${p.name}" loading="eager">`
+    ? `<img src="${p.image}" alt="${p.name}" loading="eager" onerror="this.onerror=null;this.parentNode.innerHTML='<span class=\\'swipe-icon\\'>${p.icon}</span>'">`
     : `<span class="swipe-icon">${p.icon}</span>`;
 
   // ドット更新
@@ -1673,7 +1673,7 @@ function showResults() {
     return `
       <div class="product-card rank-${rank}" id="card-${p.id}" style="animation-delay:${i * 0.1}s" onclick="selectCard(${p.id})">
         <div class="rank-badge">${rankLabel}</div>
-        ${p.image ? `<div class="product-img-wrap"><img src="${p.image}" alt="${p.name}" loading="lazy"></div>` : `<div class="product-icon">${p.icon}</div>`}
+        ${p.image ? `<div class="product-img-wrap"><img src="${p.image}" alt="${p.name}" loading="lazy" onerror="this.onerror=null;this.parentNode.outerHTML='<div class=\\'product-icon\\'>${p.icon}</div>'"></div>` : `<div class="product-icon">${p.icon}</div>`}
         <div class="product-type">${p.type}</div>
         <div class="product-name">${p.name}</div>
         <div class="product-desc">${p.desc}</div>

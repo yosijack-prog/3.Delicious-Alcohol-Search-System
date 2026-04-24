@@ -1,8 +1,8 @@
-const XLSX = require('C:/Users/yoshi/AppData/Local/Temp/xlreader/node_modules/xlsx');
+const XLSX = require('G:/マイドライブ/Claudcode/ashizuka/platform/node_modules/xlsx');
 const fs = require('fs');
 const path = require('path');
 
-const wb = XLSX.readFile('G:/マイドライブ/Claudcode/商品一覧表税額込-2_完成版.xlsx');
+const wb = XLSX.readFile('G:/マイドライブ/Claudcode/ashizuka/商品一覧表税額込-2_完成版.xlsx');
 const ws = wb.Sheets[wb.SheetNames[0]];
 const data = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
 const rows = data.slice(1);
@@ -116,8 +116,10 @@ function adjustFromTags(base, tags) {
 }
 
 var products = [];
+var jpgCount = 0;
 rows.forEach(function(r, idx) {
   var cat = (r[0]||'').trim();
+  var jan = String(r[1]||'').replace(/\.0$/, '').trim();  // PLUコード = JAN（末尾 .0 除去）
   var name = (r[2]||'').trim();
   var desc = (r[14]||'').trim();
   var tagsRaw = (r[15]||'').trim();
@@ -136,6 +138,29 @@ rows.forEach(function(r, idx) {
     .filter(function(t){return t && ['日本酒','ワイン','ウイスキー','焼酎','リキュール','スピリッツ'].indexOf(t)<0;})
     .slice(2, 6);
 
+  // JAN.jpg が存在すればそちらを優先（楽天バッチ取得画像）
+  // ※ バッチのジャンル分類と XLSX の imagePath ジャンルが異なる場合があるため
+  //   images/ 配下の全サブフォルダを横断して JAN.jpg を探す
+  var resolvedImage = imagePath || null;
+  if (jan) {
+    var imagesDir = path.join(__dirname, 'images');
+    var found = false;
+    try {
+      var subdirs = fs.readdirSync(imagesDir, { withFileTypes: true })
+        .filter(function(d) { return d.isDirectory(); })
+        .map(function(d) { return d.name; });
+      for (var si = 0; si < subdirs.length; si++) {
+        var candidate = path.join(imagesDir, subdirs[si], jan + '.jpg');
+        if (fs.existsSync(candidate)) {
+          resolvedImage = 'images/' + subdirs[si] + '/' + jan + '.jpg';
+          jpgCount++;
+          found = true;
+          break;
+        }
+      }
+    } catch(e) { /* images フォルダがない場合は無視 */ }
+  }
+
   products.push({
     id: idx+1,
     type: cat,
@@ -144,17 +169,21 @@ rows.forEach(function(r, idx) {
     desc: desc,
     tags: tagList.slice(0,4),
     price: price,
-    image: imagePath || null,
+    jan: jan || null,
+    image: resolvedImage,
     profile: profile
   });
 });
 
 console.log('生成商品数: ' + products.length);
+console.log('  うち JPG 画像取得済み: ' + jpgCount + ' 件');
+console.log('  うち GIF（旧資産）   : ' + (products.filter(function(p){return p.image && p.image.endsWith('.gif');}).length) + ' 件');
+console.log('  画像なし             : ' + (products.filter(function(p){return !p.image;}).length) + ' 件');
 var catCount = {};
 products.forEach(function(p){catCount[p.type]=(catCount[p.type]||0)+1;});
 Object.entries(catCount).sort(function(a,b){return b[1]-a[1];}).slice(0,15).forEach(function(e){console.log(e[1], e[0]);});
 
-var output = '// 店舗実商品データベース（自動生成）\nconst PRODUCTS = ' + JSON.stringify(products) + ';\n';
+var output = '// 店舗実商品データベース（自動生成）\n// 生成日時: ' + new Date().toLocaleString('ja-JP') + '\nconst PRODUCTS = ' + JSON.stringify(products) + ';\n';
 var outPath = path.join(__dirname, 'products.js');
 fs.writeFileSync(outPath, output, 'utf8');
 console.log('\nproducts.js 出力先: ' + outPath);
