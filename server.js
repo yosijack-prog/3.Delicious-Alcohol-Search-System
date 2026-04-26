@@ -15,6 +15,22 @@ const MIME = {
 };
 
 http.createServer((req, res) => {
+  // APIリクエストは platform/backend (3002) にプロキシ転送
+  if (req.url.startsWith('/api/')) {
+    const options = {
+      hostname: 'localhost', port: 3002,
+      path: req.url, method: req.method,
+      headers: { ...req.headers, host: 'localhost:3002' },
+    };
+    const proxy = http.request(options, (r) => {
+      res.writeHead(r.statusCode, r.headers);
+      r.pipe(res);
+    });
+    proxy.on('error', () => { res.writeHead(502); res.end('Backend unavailable'); });
+    req.pipe(proxy);
+    return;
+  }
+
   let filePath = path.join(__dirname, req.url === '/' ? 'index.html' : req.url);
   const ext = path.extname(filePath);
   const contentType = MIME[ext] || 'application/octet-stream';

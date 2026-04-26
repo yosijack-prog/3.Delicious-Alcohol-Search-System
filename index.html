@@ -662,6 +662,144 @@
       .btn { padding: 20px 46px; font-size: 22px; min-height: 64px; min-width: 240px; }
       .btn-row { gap: 18px; }
     }
+
+    /* ===== 👤 お客様FABボタン ===== */
+    #customer-fab {
+      position: fixed; bottom: 28px; right: 22px; z-index: 9000;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      background: linear-gradient(135deg, #c4786c, #e8a87c);
+      color: #fff; border: none; border-radius: 50px; cursor: pointer;
+      padding: 10px 18px 9px; box-shadow: 0 4px 18px rgba(196,120,108,0.45);
+      font-size: 13px; font-weight: 700; font-family: inherit;
+      transition: transform 0.18s, box-shadow 0.18s;
+    }
+    #customer-fab:active { transform: scale(0.95); }
+    #customer-fab-icon { font-size: 22px; line-height: 1; }
+    #customer-fab-badge {
+      position: fixed; bottom: 58px; right: 16px; z-index: 9001;
+      background: #2d9d6e; color: #fff; border-radius: 20px;
+      padding: 3px 10px; font-size: 12px; font-weight: 700; white-space: nowrap;
+    }
+
+    /* ===== 電話番号テンキーモーダル ===== */
+    #customer-modal {
+      display: none; position: fixed; inset: 0; z-index: 9500;
+      background: rgba(0,0,0,0.65); backdrop-filter: blur(6px);
+      align-items: center; justify-content: center;
+    }
+    #customer-modal.open { display: flex; }
+    #customer-modal-inner {
+      background: var(--surface); border-radius: 28px; padding: 32px 28px 28px;
+      width: min(600px, 96vw); max-height: 94vh; overflow-y: auto;
+      box-shadow: 0 20px 80px rgba(0,0,0,0.35);
+      position: relative;
+    }
+    .cm-close-btn {
+      position: absolute; top: 18px; right: 20px;
+      background: none; border: none; font-size: 22px; cursor: pointer;
+      color: var(--muted); padding: 4px 10px; border-radius: 8px;
+    }
+    .cm-title {
+      font-size: clamp(20px, 4vw, 26px); font-weight: 700;
+      text-align: center; color: var(--text); margin-bottom: 6px;
+    }
+    .cm-sub { text-align: center; color: var(--muted); font-size: 15px; margin-bottom: 20px; }
+    #cm-tel-display {
+      font-size: clamp(22px, 5vw, 34px); letter-spacing: 0.18em;
+      text-align: center; font-weight: 700; color: var(--accent);
+      background: var(--card); border-radius: 14px; padding: 14px 20px;
+      margin-bottom: 20px; min-height: 60px; display: flex; align-items: center; justify-content: center;
+    }
+    .cm-keypad {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+      max-width: 340px; margin: 0 auto 20px;
+    }
+    .cm-key {
+      font-size: clamp(22px, 4.5vw, 32px); font-weight: 700;
+      background: var(--card); border: 1.5px solid var(--border);
+      border-radius: 16px; padding: 18px 10px; cursor: pointer; color: var(--text);
+      transition: background 0.12s, transform 0.1s;
+      font-family: inherit;
+    }
+    .cm-key:active { background: rgba(196,120,108,0.12); transform: scale(0.93); }
+    .cm-key-del { background: rgba(196,120,108,0.08); color: var(--accent); }
+    .cm-key-search {
+      background: linear-gradient(135deg, #c4786c, #e8a87c);
+      color: #fff; border-color: transparent;
+    }
+    .cm-key-search:disabled { opacity: 0.4; cursor: default; }
+    .cm-msg { text-align: center; min-height: 22px; font-size: 15px; color: #c44; font-weight: 600; }
+
+    /* ── お客様パネル ── */
+    .cm-points-badge {
+      text-align: center; font-size: 28px; font-weight: 700;
+      color: #c4786c; margin: -4px 0 18px;
+    }
+    .cm-section { margin-bottom: 20px; }
+    .cm-section-title {
+      font-size: 15px; font-weight: 700; color: var(--muted);
+      letter-spacing: 0.06em; margin-bottom: 10px; text-transform: uppercase;
+    }
+    .cm-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .cm-list li {
+      background: var(--card); border: 1.5px solid var(--border);
+      border-radius: 12px; padding: 10px 14px; font-size: 15px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .cm-check-item { cursor: pointer; }
+    .cm-check-item:hover { background: rgba(196,120,108,0.07); }
+    .cm-check-item input[type="checkbox"] {
+      width: 20px; height: 20px; accent-color: var(--accent); flex-shrink: 0;
+    }
+    .cm-point-tag {
+      margin-left: auto; font-size: 13px; color: #2d9d6e;
+      font-weight: 700; white-space: nowrap;
+    }
+    .cm-empty { color: var(--muted); font-size: 14px; text-align: center; padding: 8px; }
+    .cm-print-btn {
+      width: 100%; padding: 16px; font-size: 17px; font-weight: 700;
+      background: linear-gradient(135deg, #c4786c, #e8a87c);
+      color: #fff; border: none; border-radius: 14px; cursor: pointer;
+      margin-bottom: 12px; font-family: inherit;
+      transition: opacity 0.15s;
+    }
+    .cm-print-btn:disabled { opacity: 0.35; cursor: default; }
+    .cm-action-row { display: flex; gap: 10px; justify-content: center; }
+    .cm-btn-ghost {
+      padding: 10px 20px; font-size: 14px; font-weight: 600;
+      background: none; border: 1.5px solid var(--border);
+      border-radius: 24px; cursor: pointer; color: var(--muted);
+      font-family: inherit;
+    }
+
+    /* ===== 印刷スタイル（ポイント引換券） ===== */
+    #point-voucher-print { display: none; }
+    @media print {
+      body > *:not(#point-voucher-print) { display: none !important; }
+      #point-voucher-print {
+        display: block !important;
+        font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif;
+        padding: 20px; max-width: 400px;
+      }
+      .pv-title { font-size: 20px; font-weight: bold; text-align: center; margin-bottom: 8px; }
+      .pv-subtitle { text-align: center; font-size: 14px; color: #666; margin-bottom: 14px; }
+      .pv-code { font-size: 32px; font-weight: bold; text-align: center; letter-spacing: 0.2em;
+        background: #f5f5f5; border: 1px solid #ccc; border-radius: 8px; padding: 10px; margin: 12px 0; }
+      .pv-name { font-size: 16px; margin-bottom: 10px; }
+      .pv-items { margin: 10px 0; padding-left: 0; list-style: none; }
+      .pv-items li { padding: 4px 0; border-bottom: 1px dashed #eee; font-size: 14px;
+        display: flex; justify-content: space-between; }
+      .pv-total { font-size: 18px; font-weight: bold; margin-top: 10px; text-align: right; }
+      .pv-expiry { font-size: 12px; color: #888; margin-top: 8px; }
+      .pv-footer { font-size: 12px; color: #666; text-align: center; margin-top: 14px;
+        border-top: 1px solid #ccc; padding-top: 10px; }
+    }
+
+    /* iPad向けモーダル拡大 */
+    @media (min-width: 768px) {
+      .cm-key { font-size: 30px; padding: 22px 10px; }
+      .cm-keypad { gap: 16px; max-width: 380px; }
+    }
   </style>
 </head>
 <body>
@@ -785,6 +923,74 @@
 
 <!-- ===== PRINT SLIP (動的生成) ===== -->
 <div id="print-slip"><!-- JS で生成 --></div>
+
+<!-- ===== 印刷用ポイント引換券 ===== -->
+<div id="point-voucher-print"><!-- JS で生成 --></div>
+
+<!-- ===== 👤 お客様ボタン（固定位置） ===== -->
+<button id="customer-fab" onclick="openCustomerModal()"
+  title="お客様情報を入力して、あなた専用のおすすめを見る">
+  <span id="customer-fab-icon">👤</span>
+  <span id="customer-fab-label">お客様</span>
+</button>
+<div id="customer-fab-badge" style="display:none;"></div>
+
+<!-- ===== 電話番号テンキーモーダル ===== -->
+<div id="customer-modal" aria-modal="true" role="dialog" aria-label="お客様識別">
+  <div id="customer-modal-inner">
+
+    <button class="cm-close-btn" onclick="closeCustomerModal()" aria-label="閉じる">✕</button>
+
+    <!-- ── テンキー画面 ── -->
+    <div id="cm-keypad-view">
+      <div class="cm-title">📱 電話番号でお客様を検索</div>
+      <div class="cm-sub">ハイフンなし・11桁</div>
+      <div id="cm-tel-display">－ － － － － － － － － － －</div>
+      <div class="cm-keypad">
+        <button class="cm-key" onclick="cmAppend('1')">1</button>
+        <button class="cm-key" onclick="cmAppend('2')">2</button>
+        <button class="cm-key" onclick="cmAppend('3')">3</button>
+        <button class="cm-key" onclick="cmAppend('4')">4</button>
+        <button class="cm-key" onclick="cmAppend('5')">5</button>
+        <button class="cm-key" onclick="cmAppend('6')">6</button>
+        <button class="cm-key" onclick="cmAppend('7')">7</button>
+        <button class="cm-key" onclick="cmAppend('8')">8</button>
+        <button class="cm-key" onclick="cmAppend('9')">9</button>
+        <button class="cm-key cm-key-del" onclick="cmBackspace()">⌫</button>
+        <button class="cm-key" onclick="cmAppend('0')">0</button>
+        <button class="cm-key cm-key-search" id="cm-search-btn" onclick="cmSearch()" disabled>検索</button>
+      </div>
+      <div id="cm-msg" class="cm-msg"></div>
+    </div>
+
+    <!-- ── お客様パネル ── -->
+    <div id="cm-panel-view" style="display:none;">
+      <div class="cm-title" id="cm-customer-name">○○様</div>
+      <div class="cm-points-badge" id="cm-points-badge">★ 0P</div>
+
+      <div class="cm-section">
+        <div class="cm-section-title">📦 よくご注文の商品</div>
+        <ul id="cm-frequent-list" class="cm-list"></ul>
+        <div id="cm-frequent-empty" class="cm-empty" style="display:none;">購入履歴がまだありません</div>
+      </div>
+
+      <div class="cm-section">
+        <div class="cm-section-title">⭐ まだ試していないおすすめ（チェックしてポイントゲット！）</div>
+        <ul id="cm-suggest-list" class="cm-list"></ul>
+        <div id="cm-suggest-empty" class="cm-empty" style="display:none;">新商品候補を取得中...</div>
+      </div>
+
+      <button class="cm-print-btn" id="cm-print-btn" onclick="cmPrintVoucher()" disabled>
+        🖨 ポイント引換券を印刷する（合計 <span id="cm-print-pts">0</span>P）
+      </button>
+      <div class="cm-action-row">
+        <button class="cm-btn-ghost" onclick="closeCustomerModal()">🔍 全商品を探す</button>
+        <button class="cm-btn-ghost" onclick="cmLogout()">ログアウト</button>
+      </div>
+    </div>
+
+  </div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="products.js"></script>
@@ -1785,6 +1991,248 @@ function getDominantFlavor() {
   if (u.body >= 4 && u.strong >= 4) return { title: `🥃 <em>濃厚・本格</em>派のあなたへ`,   sub: `${g}コクと深みのある力強いお酒をご提案します` };
   if (u.strong <= 2)                return { title: `🌿 <em>軽やか・飲みやすい</em>派のあなたへ`, sub: `${g}飲みやすく軽やかなお酒をご提案します` };
   return { title: `✨ <em>バランス</em>重視のあなたへ`, sub: `${g}あなたの味覚にぴったりのお酒をご提案します` };
+}
+
+/* ===================================================
+   👤 お客様識別 + ポイント引換券
+=================================================== */
+let cmTelDigits = '';
+let cmCurrentCustomer = null;
+let cmSuggested = []; // { p: product, score: number }[]
+
+function openCustomerModal() {
+  document.getElementById('customer-modal').classList.add('open');
+  if (!cmCurrentCustomer) showKeypadView();
+}
+
+function closeCustomerModal() {
+  document.getElementById('customer-modal').classList.remove('open');
+}
+
+function showKeypadView() {
+  document.getElementById('cm-keypad-view').style.display = '';
+  document.getElementById('cm-panel-view').style.display = 'none';
+  cmTelDigits = '';
+  updateTelDisplay();
+  const msg = document.getElementById('cm-msg');
+  if (msg) msg.textContent = '';
+}
+
+function updateTelDisplay() {
+  const display = document.getElementById('cm-tel-display');
+  if (!display) return;
+  const raw = cmTelDigits.padEnd(11, '－');
+  display.textContent = raw.split('').join(' ');
+  const btn = document.getElementById('cm-search-btn');
+  if (btn) btn.disabled = (cmTelDigits.length < 10);
+}
+
+function cmAppend(d) {
+  if (cmTelDigits.length < 11) { cmTelDigits += d; updateTelDisplay(); }
+}
+
+function cmBackspace() {
+  cmTelDigits = cmTelDigits.slice(0, -1); updateTelDisplay();
+}
+
+async function cmSearch() {
+  const msg = document.getElementById('cm-msg');
+  const btn = document.getElementById('cm-search-btn');
+  if (msg) msg.textContent = '検索中...';
+  if (btn) btn.disabled = true;
+  try {
+    const res = await fetch(`/api/customer-orders/sl-customer-search?tel=${cmTelDigits}`);
+    const data = await res.json();
+    if (!data.found) {
+      if (msg) msg.textContent = '登録されていません';
+      if (btn) btn.disabled = false;
+      return;
+    }
+    cmCurrentCustomer = data.customer;
+    const fabBadge = document.getElementById('customer-fab-badge');
+    if (fabBadge) { fabBadge.textContent = `👤 ${data.customer.name}様`; fabBadge.style.display = 'block'; }
+    await loadCustomerPanel(data.customer);
+  } catch(e) {
+    if (msg) msg.textContent = 'エラーが発生しました';
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function loadCustomerPanel(customer) {
+  const nameEl = document.getElementById('cm-customer-name');
+  if (nameEl) nameEl.textContent = `${customer.name} 様`;
+  const panelView = document.getElementById('cm-panel-view');
+  const keypadView = document.getElementById('cm-keypad-view');
+  if (panelView) panelView.style.display = '';
+  if (keypadView) keypadView.style.display = 'none';
+
+  // ポイント残高取得
+  try {
+    const pb = await fetch(`/api/points/balance?slCustomerCode=${customer.slCustomerCode}`);
+    const pd = await pb.json();
+    const badge = document.getElementById('cm-points-badge');
+    if (badge) badge.textContent = `★ ${pd.balance ?? 0}P`;
+  } catch(e) {
+    const badge = document.getElementById('cm-points-badge');
+    if (badge) badge.textContent = '★ 0P';
+  }
+
+  // 購入頻度取得
+  try {
+    const fr = await fetch(`/api/customer-orders/sl-frequent?slCustomerCode=${customer.slCustomerCode}&months=6&limit=30`);
+    const fd = await fr.json();
+    const purchased = fd.data || [];
+
+    const norm = s => s.replace(/[\s　]/g,'').toLowerCase();
+    const allProducts = (typeof PRODUCTS !== 'undefined') ? PRODUCTS : [];
+    const matchedProducts = purchased
+      .map(item => ({ item, p: allProducts.find(p =>
+        norm(p.name).includes(norm(item.name)) || norm(item.name).includes(norm(p.name))
+      )}))
+      .filter(x => x.p);
+
+    // よく注文 TOP5
+    const freqList = document.getElementById('cm-frequent-list');
+    const freqEmpty = document.getElementById('cm-frequent-empty');
+    if (freqList) freqList.innerHTML = '';
+    if (matchedProducts.length === 0) {
+      if (freqEmpty) freqEmpty.style.display = '';
+    } else {
+      if (freqEmpty) freqEmpty.style.display = 'none';
+      matchedProducts.slice(0,5).forEach(({p}) => {
+        const li = document.createElement('li');
+        li.textContent = `${p.icon || '🍶'} ${p.name}`;
+        if (freqList) freqList.appendChild(li);
+      });
+    }
+
+    // コサイン類似度でおすすめ算出
+    const purchasedIds = new Set(matchedProducts.map(x => x.p.id));
+    const avgProfile = calcAvgProfile(matchedProducts.map(x => x.p));
+    const instock = (typeof PRODUCT_INSTOCK !== 'undefined') ? PRODUCT_INSTOCK : null;
+    cmSuggested = allProducts
+      .filter(p => !purchasedIds.has(p.id) && (!instock || instock[p.id]))
+      .map(p => ({ p, score: cmCosineSim(p.profile, avgProfile) }))
+      .sort((a,b) => b.score - a.score)
+      .slice(0, 8);
+
+    renderSuggestions();
+  } catch(e) {
+    const empty = document.getElementById('cm-suggest-empty');
+    if (empty) { empty.style.display = ''; empty.textContent = 'データ取得エラー'; }
+  }
+}
+
+function calcAvgProfile(products) {
+  const keys = ['sweet','bitter','acid','body','strong','fruity'];
+  const avg = Object.fromEntries(keys.map(k => [k, 2]));
+  if (!products.length) return avg;
+  keys.forEach(k => {
+    avg[k] = products.reduce((s, p) => s + (p.profile?.[k] ?? 2), 0) / products.length;
+  });
+  return avg;
+}
+
+function cmCosineSim(a, b) {
+  const keys = ['sweet','bitter','acid','body','strong','fruity'];
+  const dot = keys.reduce((s,k) => s + (a?.[k]??2)*(b?.[k]??2), 0);
+  const na  = Math.sqrt(keys.reduce((s,k) => s + (a?.[k]??2)**2, 0));
+  const nb  = Math.sqrt(keys.reduce((s,k) => s + (b?.[k]??2)**2, 0));
+  return (na && nb) ? dot/(na*nb) : 0;
+}
+
+function renderSuggestions() {
+  const ul = document.getElementById('cm-suggest-list');
+  const empty = document.getElementById('cm-suggest-empty');
+  if (!ul) return;
+  ul.innerHTML = '';
+  if (!cmSuggested.length) { if (empty) empty.style.display = ''; return; }
+  if (empty) empty.style.display = 'none';
+  cmSuggested.forEach(({p}, i) => {
+    const li = document.createElement('li');
+    li.className = 'cm-check-item';
+    li.innerHTML = `
+      <input type="checkbox" id="cm-chk-${i}" onchange="updatePrintButton()">
+      <label for="cm-chk-${i}" style="flex:1;cursor:pointer;">${p.icon||'🍶'} ${p.name}</label>
+      <span class="cm-point-tag">+20P</span>`;
+    ul.appendChild(li);
+  });
+  updatePrintButton();
+}
+
+function updatePrintButton() {
+  const checked = cmSuggested.filter((_,i) => {
+    const el = document.getElementById(`cm-chk-${i}`);
+    return el && el.checked;
+  });
+  const pts = checked.length * 20;
+  const btn = document.getElementById('cm-print-btn');
+  const ptsSpan = document.getElementById('cm-print-pts');
+  if (ptsSpan) ptsSpan.textContent = pts;
+  if (btn) btn.disabled = (checked.length === 0);
+}
+
+async function cmPrintVoucher() {
+  const checked = cmSuggested.filter((_,i) => {
+    const el = document.getElementById(`cm-chk-${i}`);
+    return el && el.checked;
+  });
+  if (!checked.length || !cmCurrentCustomer) return;
+
+  const btn = document.getElementById('cm-print-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '発行中...'; }
+
+  try {
+    const resp = await fetch('/api/points/issue', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        slCustomerCode: cmCurrentCustomer.slCustomerCode,
+        customerName: cmCurrentCustomer.name,
+        points: checked.length * 20,
+        products: checked.map(x => x.p.name),
+      }),
+    });
+    const data = await resp.json();
+    if (!data.success) throw new Error(data.error);
+
+    const now = new Date();
+    const dateStr = now.toLocaleString('ja-JP');
+    const expiryYear = now.getFullYear() + 1;
+    const expiry = `${expiryYear}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`;
+
+    const printArea = document.getElementById('point-voucher-print');
+    if (printArea) {
+      printArea.innerHTML = `
+        <div class="pv-title">🍶 芦塚酒店 新商品ポイント引換券</div>
+        <div class="pv-subtitle">この券をレジスタッフにお渡しください</div>
+        <div class="pv-name">お客様: <strong>${cmCurrentCustomer.name} 様</strong></div>
+        <div class="pv-code">${data.voucherCode}</div>
+        <ul class="pv-items">
+          ${checked.map(x => `<li><span>${x.p.name}</span><span>+20P</span></li>`).join('')}
+        </ul>
+        <div class="pv-total">付与予定: ${checked.length * 20}P</div>
+        <div class="pv-expiry">有効期限: ${expiry}まで（発行から1年）</div>
+        <div class="pv-footer">発行日時: ${dateStr}</div>
+      `;
+    }
+    window.print();
+  } catch(e) {
+    alert('発行に失敗しました: ' + e.message);
+  }
+
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = `🖨 ポイント引換券を印刷する（合計 <span id="cm-print-pts">0</span>P）`;
+    updatePrintButton();
+  }
+}
+
+function cmLogout() {
+  cmCurrentCustomer = null;
+  cmSuggested = [];
+  const fabBadge = document.getElementById('customer-fab-badge');
+  if (fabBadge) { fabBadge.style.display = 'none'; fabBadge.textContent = ''; }
+  showKeypadView();
 }
 </script>
 </body>
